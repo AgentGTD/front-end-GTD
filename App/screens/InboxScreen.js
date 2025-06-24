@@ -44,7 +44,7 @@ const InboxScreen = () => {
       !task.completed &&
       !task.trashed &&
       (task.category === 'inbox' || !task.category) && 
-      isAfter(new Date(task.dueDate), new Date(2020, 0, 1))
+      isAfter(new Date(task.dueDate), new Date(2025, 0, 1))
   );
 
   const grouped = groupTasksByDate(

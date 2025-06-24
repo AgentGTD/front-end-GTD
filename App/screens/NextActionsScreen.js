@@ -13,7 +13,6 @@ const NextActionScreen = ({ navigation }) => {
   const { state, deleteContext, toggleComplete, moveTaskToCategory, moveTo } = useTaskContext();
   const [modalVisible, setModalVisible] = useState(false);
   const [search, setSearch] = useState('');
-  const [expandedContext, setExpandedContext] = useState(null);
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
   const [contextToDelete, setContextToDelete] = useState(null);
   const [snackbarVisible, setSnackbarVisible] = useState(false);

@@ -4,7 +4,7 @@
     "slug": "FlowDo",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/logo.png",
+    "icon": "./assets/icon.ico",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "splash": {
@@ -34,6 +34,12 @@
       "eas": {
         "projectId": "503bec3b-0709-446e-bae4-5250be8e4497"
       }
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/503bec3b-0709-446e-bae4-5250be8e4497"
     }
   }
 }

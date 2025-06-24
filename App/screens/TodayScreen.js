@@ -5,7 +5,7 @@ import { useTaskContext } from '../context/TaskContext';
 import TaskCard from '../components/TaskCard';
 import AddTaskModal from '../components/AddTaskModal';
 import FAB from '../components/FAB';
-import { isToday } from '../utils/dateUtils';
+import { isToday, isBefore } from '../utils/dateUtils';
 import TaskDetailModal from '../components/TaskDetailModal';
 import { Image } from 'react-native';
 
@@ -17,10 +17,16 @@ const TodayScreen = () => {
   const [snackbarVisible, setSnackbarVisible] = useState(false);
   const [lastCompletedTask, setLastCompletedTask] = useState(null);
 
+  const today = new Date();
   const todayTasks = state.tasks
-  .filter(task => isToday(task.dueDate) && !task.completed && !task.trashed)
-  .sort((a, b) => a.priority - b.priority || new Date(a.dueDate) - new Date(b.dueDate));
-
+    .filter(task =>
+      (isToday(task.dueDate) || isBefore(task.dueDate, today)) && !task.completed && !task.trashed
+    )
+    .sort((a, b) => a.priority - b.priority || new Date(a.dueDate) - new Date(b.dueDate));
+  
+  const overdueTasks = state.tasks
+    .filter(task => isBefore(task.dueDate, today) && !task.completed && !task.trashed)
+    .sort((a, b) => a.priority - b.priority || new Date(a.dueDate) - new Date(b.dueDate));
 
   const handleMoveTo = (id, category, payload) => {
     moveTo(id, category, payload);
@@ -50,8 +56,9 @@ const TodayScreen = () => {
 
   return (
     <View style={styles.container}>
+      
       <Text style={styles.header}>Today</Text>
-      {todayTasks.length === 0 ? (
+      { (todayTasks.length === 0 && overdueTasks.length === 0) ? (
          <View style={{ alignItems: 'center', marginTop: 60 }}>
                   <Image
                     source={require('../assets/today2.png')}
