@@ -105,7 +105,7 @@ const TodayScreen = () => {
       <Snackbar
         visible={snackbarVisible}
         onDismiss={() => setSnackbarVisible(false)}
-        duration={3000}
+        duration={5000}
         action={{
           label: 'Undo',
           onPress: () => {

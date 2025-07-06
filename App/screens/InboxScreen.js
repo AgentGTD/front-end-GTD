@@ -10,7 +10,7 @@ import TaskCard from '../components/TaskCard';
 import { Snackbar } from 'react-native-paper';
 
 const InboxScreen = () => {
-  const { state, moveTaskToCategory, toggleComplete, moveTo } = useTaskContext();
+  const { state,  toggleComplete, moveTo } = useTaskContext();
   const [modalVisible, setModalVisible] = useState(false);
   const [detailModalVisible, setDetailModalVisible] = useState(false);
   const [selectedTask, setSelectedTask] = useState(null);
@@ -43,13 +43,16 @@ const InboxScreen = () => {
     task =>
       !task.completed &&
       !task.trashed &&
-      (task.category === 'inbox' || !task.category) && 
+      (task.category === 'inbox' || !task.category) &&
+      !task.projectId &&
+      !task.nextActionId &&
       isAfter(new Date(task.dueDate), new Date(2025, 0, 1))
   );
 
   const grouped = groupTasksByDate(
-    filtered
-      .sort((a, b) => a.priority - b.priority || new Date(a.dueDate) - new Date(b.dueDate))
+    filtered.sort((a, b) =>
+      a.priority - b.priority || new Date(a.dueDate) - new Date(b.dueDate)
+    )
   );
 
   const handleOnPressItem = (item) => {

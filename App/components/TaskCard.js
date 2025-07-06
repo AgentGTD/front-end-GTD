@@ -14,8 +14,8 @@ const TaskCard = ({ task, onPress, onComplete }) => {
     : null;
 
   // Get context if any
-  const contextName = task.contextId
-    ? state.contexts.find(c => c.id === task.contextId)?.name
+  const contextName = task.nextActionId
+    ? state.contexts.find(c => c.id === task.nextActionId)?.context_name
     : null;
 
   // Get bottom right label

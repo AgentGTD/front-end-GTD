@@ -48,7 +48,7 @@ const reducer = (state, action) => {
     case 'SET_CONTEXTS':
       return { ...state, contexts: action.payload };
     case 'ADD_CONTEXT':
-      if (state.contexts.some((c) => c.name === action.payload.name)) return state;
+      if (state.contexts.some((c) => c.context_name === action.payload.context_name)) return state;
       return {
         ...state,
         contexts: [...state.contexts, action.payload],
@@ -164,17 +164,27 @@ export const TaskProvider = ({ children }) => {
 
   const toggleComplete = async (taskId) => {
     const token = await AsyncStorage.getItem('token');
-    // Find the task to get its current completed status
     const task = state.tasks.find(t => t.id === taskId);
     if (!task) return;
-    const updatedTask = { ...task, completed: !task.completed };
+
+    const reqBody = {
+      title: task.title,
+      description: task.description,
+      dueDate: task.dueDate,
+      priority: task.priority,
+      category: task.category,
+      projectId: task.projectId || null,
+      nextActionId: task.nextActionId || null,
+      completed: !task.completed, // <-- toggle here
+    };
+
     const res = await fetch(`${API_BASE_URL}/api/tasks/${taskId}`, {
       method: 'PUT',
       headers: {
         Authorization: `Bearer ${token}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(updatedTask),
+      body: JSON.stringify(reqBody),
     });
     const data = await res.json();
     if (res.ok && data.task) {
@@ -196,7 +206,9 @@ export const TaskProvider = ({ children }) => {
     const data = await res.json();
     if (res.ok && data.project) {
       dispatch({ type: 'ADD_PROJECT', payload: data.project });
+      return data.project; 
     }
+    return null;
   };
 
   const updateProject = async (project) => {
@@ -240,7 +252,9 @@ export const TaskProvider = ({ children }) => {
     const data = await res.json();
     if (res.ok && data.nextAction) {
       dispatch({ type: 'ADD_CONTEXT', payload: data.nextAction });
+      return data.nextAction; 
     }
+    return null;
   };
 
   const updateContext = async (context) => {
@@ -270,7 +284,36 @@ export const TaskProvider = ({ children }) => {
     }
   };
 
-  // Utility functions
+  const moveTo = async (taskId, type, payload) => {
+    const token = await AsyncStorage.getItem('token');
+    // Find the task to update
+    const task = state.tasks.find(t => t.id === taskId);
+    if (!task) return;
+
+    let updatedTask = { ...task };
+
+    if (type === 'project' && payload.projectId) {
+      updatedTask.projectId = payload.projectId;
+    }
+    if (type === 'next' && payload.contextId) {
+      updatedTask.nextActionId = payload.contextId;
+    }
+
+    const res = await fetch(`${API_BASE_URL}/api/tasks/${taskId}`, {
+      method: 'PUT',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(updatedTask),
+    });
+    const data = await res.json();
+    if (res.ok && data.task) {
+      dispatch({ type: 'UPDATE_TASK', payload: data.task });
+    }
+  };
+
+
   const getTasksByProject = (projectId) => {
     return state.tasks.filter(
       (task) => task.projectId === projectId && !task.completed && !task.trashed
@@ -292,7 +335,8 @@ export const TaskProvider = ({ children }) => {
         updateContext,
         deleteContext,
         getTasksByProject,
-        toggleComplete, 
+        toggleComplete,
+        moveTo,
       }}
     >
       {children}

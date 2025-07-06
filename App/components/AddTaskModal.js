@@ -2,14 +2,13 @@ import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, TextInput, Modal, TouchableOpacity, StyleSheet, Keyboard, TouchableWithoutFeedback, Platform } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useTaskContext } from '../context/TaskContext';
-import uuid from 'react-native-uuid';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import { MaterialIcons } from '@expo/vector-icons';
 
 const PRIORITY_COLORS = ['#e53935', '#fb8c00', '#1976d2', '#43a047', '#757575'];
 
-const AddTaskModal = ({ visible, onClose, defaultProjectId, defaultCategory }) => {
-  const { dispatch } = useTaskContext();
+const AddTaskModal = ({ visible, onClose, defaultProjectId, defaultCategory, defaultNextActionId }) => {
+  const { addTask } = useTaskContext(); 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [priority, setPriority] = useState(5);
@@ -42,26 +41,18 @@ const AddTaskModal = ({ visible, onClose, defaultProjectId, defaultCategory }) =
     }
   };
 
-  const handleAdd = () => {
+  const handleAdd = async () => {
     if (!title.trim()) return;
 
-    dispatch({
-      type: 'ADD_TASK',
-      payload: {
-        id: uuid.v4(),
-        title,
-        description,
-        dueDate: dueDate.toISOString(),
-        priority,
-        category: defaultCategory || 'inbox',
-        projectId: defaultProjectId || null,
-        context: null, 
-        completed: false,
-        trashed: false,
-        createdAt: new Date().toISOString(),
-        subtasks: [],
-      },
-    });
+    await addTask(
+      title,
+      description,
+      dueDate.toISOString(),
+      priority,
+      defaultCategory || 'inbox',
+      defaultProjectId || null,
+      defaultNextActionId || null
+    );
 
     onClose();
     setTitle('');

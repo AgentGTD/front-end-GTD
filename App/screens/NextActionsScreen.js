@@ -10,7 +10,7 @@ import { Snackbar } from 'react-native-paper';
 
 
 const NextActionScreen = ({ navigation }) => {
-  const { state, deleteContext, toggleComplete, moveTaskToCategory, moveTo } = useTaskContext();
+  const { state, deleteContext, toggleComplete, moveTo } = useTaskContext();
   const [modalVisible, setModalVisible] = useState(false);
   const [search, setSearch] = useState('');
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
@@ -28,8 +28,7 @@ const NextActionScreen = ({ navigation }) => {
       task =>
         !task.completed &&
         !task.trashed &&
-        task.contextId === ctx.id &&
-        (task.category === 'next' || task.category === 'nextActions')
+        task.nextActionId === ctx.id
     ),
   })).filter(ctx => ctx.tasks.length > 0);
 
@@ -56,17 +55,15 @@ const NextActionScreen = ({ navigation }) => {
     : [];
 
   const filteredContexts = search
-    ? nextActionsByContext.filter(
-        (ctx) => {
-          const ctxName = ctx.name?.toLowerCase() || '';
-          const searchTerm = search.toLowerCase().replace(/^@/, ''); 
-          return (
-            ctxName.includes(searchTerm) ||
-            ('@' + ctxName).includes(search.toLowerCase())
-          );
-        }
-      )
-    : nextActionsByContext;
+  ? nextActionsByContext.filter(ctx => {
+      const ctxName = ctx.context_name?.toLowerCase() || '';
+      const searchTerm = search.toLowerCase().replace(/^@/, '');
+      return (
+        ctxName.includes(searchTerm) || 
+        ('@' + ctxName).includes(search.toLowerCase())
+      );
+    })
+  : nextActionsByContext;
 
  
 
@@ -260,7 +257,7 @@ const renderProject = ({ item }) => {
             <Text style={{ color: '#444', fontSize: 15, marginBottom: 18, textAlign: 'center' }}>
               Are you sure you want to delete{' '}
               <Text style={{ fontWeight: 'bold', color: '#e53935' }}>
-                @{contextToDelete?.name}
+                @{contextToDelete?.context_name}
               </Text>
               ? All its tasks will be marked as completed.
             </Text>

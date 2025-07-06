@@ -32,41 +32,37 @@ const TaskDetailModal = ({ visible, task, onClose, moveTo, onComplete }) => {
     onClose();
   };
 
-  const handleMoveToProject = () => {
+  const handleMoveToProject = async () => {
     if (newProjectName.trim()) {
       const projectName = newProjectName.trim();
-      const newProjectId = uuid.v4();
-      
-      // Add project and immediately update state
-      addProject(projectName, newProjectId);
-      
-      // Move task to the new project
-      moveTo(editableTask.id, 'project', { projectId: newProjectId });
-      
-      // Update local state
-      setEditableTask({ ...editableTask, projectId: newProjectId });
-      setSelectedProject(newProjectId);
+      // Await the project creation and get the new project object
+      const newProject = await addProject(projectName);
+      if (newProject && newProject.id) {
+        await moveTo(editableTask.id, 'project', { projectId: newProject.id });
+        setEditableTask({ ...editableTask, projectId: newProject.id });
+        setSelectedProject(newProject.id);
+      }
       setNewProjectName('');
     } else if (selectedProject) {
-      // Move to existing project
-      moveTo(editableTask.id, 'project', { projectId: selectedProject });
+      await moveTo(editableTask.id, 'project', { projectId: selectedProject });
       setEditableTask({ ...editableTask, projectId: selectedProject });
     }
-    
     setModalType(null);
   };
-  const handleMoveToNext = () => {
+  const handleMoveToNext = async () => {
     const contextToAssign = newContextName.trim() || selectedContext;
     if (contextToAssign) {
       if (newContextName.trim()) {
-        const newContextId = uuid.v4();
-        addContext(newContextName.trim(), newContextId);
-        moveTo(editableTask.id, 'next', { contextId: newContextId });
-        setEditableTask({ ...editableTask, newContextId });
-        setSelectedContext(newContextId);
+        // Await the context creation and get the new context object
+        const newContext = await addContext(newContextName.trim());
+        if (newContext && newContext.id) {
+          await moveTo(editableTask.id, 'next', { contextId: newContext.id });
+          setEditableTask({ ...editableTask, nextActionId: newContext.id });
+          setSelectedContext(newContext.id);
+        }
       } else if (selectedContext) {
-        moveTo(editableTask.id, 'next', { contextId: selectedContext });
-        setEditableTask({ ...editableTask, contextId: selectedContext });
+        await moveTo(editableTask.id, 'next', { contextId: selectedContext });
+        setEditableTask({ ...editableTask, nextActionId: selectedContext });
       }
       setNewContextName('');
     }
@@ -84,11 +80,11 @@ const TaskDetailModal = ({ visible, task, onClose, moveTo, onComplete }) => {
   };
 
   
-  // --- Data ---
+  // data
   const projectList = Array.isArray(state.projects) ? state.projects : [];
-  const contextList = state.contexts.filter(c => c.name && c.name.trim() !== '');
+  const contextList = state.contexts.filter(c => c.context_name && c.context_name.trim() !== '');
 
-  // --- Sub-Modals ---
+  // sub-modals
   const renderPriorityModal = () => (
     <Modal visible={modalType === 'priority'} animationType="slide" transparent onRequestClose={() => setModalType(null)}>
       <TouchableWithoutFeedback onPress={() => setModalType(null)}>
@@ -183,7 +179,7 @@ const TaskDetailModal = ({ visible, task, onClose, moveTo, onComplete }) => {
                     onPress={() => setSelectedContext(item.id)}
                   >
                     <Ionicons name="at-outline" size={22} color="#43a047" style={{ marginRight: 8 }} />
-                    <Text style={styles.projectName}>{item.name}</Text>
+                    <Text style={styles.projectName}>{item.context_name}</Text>
                   </TouchableOpacity>
                 )}
                 ListEmptyComponent={
@@ -340,11 +336,11 @@ const TaskDetailModal = ({ visible, task, onClose, moveTo, onComplete }) => {
                       </View>
                     ) : null}
 
-                    {editableTask.contextId ? (
+                    {editableTask.nextActionId ? (
                       <View style={styles.metaChip}>
                         <Ionicons name="at-outline" size={16} color="#43a047" />
                         <Text style={styles.metaChipText}>
-                          {state.contexts.find(c => c.id === editableTask.contextId)?.name || 'Context'}
+                          {state.contexts.find(c => c.id === editableTask.nextActionId)?.context_name || 'Context'}
                         </Text>
                       </View>
                     ) : null}

@@ -1,6 +1,1 @@
-import { Platform } from 'react-native';
-
-export const API_BASE_URL =
-  Platform.OS === 'android'
-    ? 'http://192.168.56.1:4000' 
-    : 'http://localhost:4000';   
+export const API_BASE_URL = "http://10.168.114.246:4000"; // local server for development
