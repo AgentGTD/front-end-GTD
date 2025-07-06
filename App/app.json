@@ -4,7 +4,7 @@
     "slug": "FlowDo",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.ico",
+    "icon": "./assets/logo.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "splash": {
@@ -28,7 +28,7 @@
       "package": "com.rahul0032.FlowDo"
     },
     "web": {
-      "favicon": "./assets/icon.ico"
+      "favicon": "./assets/logo.png"
     },
     "extra": {
       "eas": {
