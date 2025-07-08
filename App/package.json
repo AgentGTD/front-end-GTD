@@ -9,6 +9,8 @@
     "web": "expo start --web"
   },
   "dependencies": {
+    "@expo/config-plugins": "~10.1.1",
+    "@expo/prebuild-config": "~9.0.0",
     "@expo/vector-icons": "^14.1.0",
     "@react-native-async-storage/async-storage": "2.1.2",
     "@react-native-community/datetimepicker": "8.4.1",
@@ -17,7 +19,6 @@
     "@react-navigation/native": "^7.1.11",
     "@react-navigation/native-stack": "^7.3.15",
     "date-fns": "^4.1.0",
-    "eas-cli": "^16.11.0",
     "expo": "53.0.19",
     "expo-status-bar": "~2.2.3",
     "expo-updates": "~0.28.17",
@@ -33,6 +34,13 @@
   },
   "devDependencies": {
     "@babel/core": "^7.20.0"
+  },
+  "expo": {
+    "doctor": {
+      "reactNativeDirectoryCheck": {
+        "listUnknownPackages": false
+      }
+    }
   },
   "private": true
 }
