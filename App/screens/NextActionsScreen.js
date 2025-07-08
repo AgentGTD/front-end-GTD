@@ -3,7 +3,7 @@ import { View, Text, FlatList, TouchableOpacity, StyleSheet, TextInput,  Modal, 
 import { useTaskContext } from '../context/TaskContext';
 import FAB from '../components/FAB';
 import AddTaskModal from '../components/AddTaskModal';
-import Ionicons from 'react-native-vector-icons/Ionicons';
+import { Ionicons } from '@expo/vector-icons';
 import TaskCard from '../components/TaskCard'; 
 import TaskDetailModal from '../components/TaskDetailModal';
 import { Snackbar } from 'react-native-paper';
@@ -322,11 +322,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#f1f3f4',
-    borderRadius: 14,
+    borderRadius: 30,
     paddingHorizontal: 14,
     paddingVertical: 2,
     marginBottom: 18,
-    borderRadius: 30,
     elevation: 5,
     marginTop: 20,
   },

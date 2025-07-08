@@ -3,7 +3,6 @@ import { Modal, View, Text, TextInput, TouchableOpacity, StyleSheet, Platform, F
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { useTaskContext } from '../context/TaskContext';
-import uuid from 'react-native-uuid';
 import { StatusBar } from 'expo-status-bar';
 
 const PRIORITY_COLORS = ['#e53935', '#fb8c00', '#1976d2', '#43a047', '#757575'];

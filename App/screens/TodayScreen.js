@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, FlatList, StyleSheet } from 'react-native';
+import { View, Text, FlatList, StyleSheet, Image } from 'react-native';
 import { Snackbar } from 'react-native-paper';
 import { useTaskContext } from '../context/TaskContext';
 import TaskCard from '../components/TaskCard';
@@ -7,10 +7,9 @@ import AddTaskModal from '../components/AddTaskModal';
 import FAB from '../components/FAB';
 import { isToday, isBefore } from '../utils/dateUtils';
 import TaskDetailModal from '../components/TaskDetailModal';
-import { Image } from 'react-native';
 
 const TodayScreen = () => {
-  const { state, moveTaskToCategory, toggleComplete, moveTo } = useTaskContext();
+  const { state, toggleComplete, moveTo } = useTaskContext();
   const [modalVisible, setModalVisible] = useState(false);
   const [detailModalVisible, setDetailModalVisible] = useState(false);
   const [selectedTask, setSelectedTask] = useState(null);
@@ -69,7 +68,7 @@ const TodayScreen = () => {
                      Enjoy your {new Date().toLocaleDateString(undefined, { weekday: 'long' })}!
                   </Text>
                   <Text style={{ fontSize: 15, color: '#888', fontWeight: '400', marginTop: 6, textAlign: 'center', maxWidth: 260, lineHeight: 22 }}>
-                    Take a deep breath. You've cleared your priorities.
+                    Take a deep breath. You&apos;ve cleared your priorities.
                   </Text>
         </View>
       ) : (

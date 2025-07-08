@@ -1,20 +1,19 @@
-import React, { useState } from 'react';
+import React, { useState, useLayoutEffect } from 'react';
 import { View, Text, FlatList, TouchableOpacity, Modal, StyleSheet, TextInput, Image } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
-import { useLayoutEffect } from 'react';
 import { useTaskContext } from '../context/TaskContext';
 import TaskDetailModal from '../components/TaskDetailModal';
 import FAB from '../components/FAB';
 import AddTaskModal from '../components/AddTaskModal';
 import TaskCard from '../components/TaskCard';
 import { Snackbar } from 'react-native-paper';
-import Ionicons from 'react-native-vector-icons/Ionicons';
+import { Ionicons } from '@expo/vector-icons';
 
 const ProjectDetailScreen = () => {
   const navigation = useNavigation();
   const { params } = useRoute();
   const { projectId, projectName } = params;
-  const { state, toggleComplete, getTasksByProject, deleteProject, updateProject, moveTaskToCategory, moveTo } = useTaskContext();
+  const { state, toggleComplete, getTasksByProject, deleteProject, updateProject, moveTo } = useTaskContext();
   const [taskModalVisible, setTaskModalVisible] = useState(false);
   const [snackbarVisible, setSnackbarVisible] = useState(false);
   const [lastCompletedTask, setLastCompletedTask] = useState(null);
@@ -216,7 +215,7 @@ const ProjectDetailScreen = () => {
             <View style={styles.deleteModal}>
               <Text style={styles.deleteTitle}>Delete project?</Text>
               <Text style={styles.deleteDesc}>
-                This will permanently delete <Text style={{ fontWeight: 'bold', color: '#e53935' }}>"{projectName}"</Text> and all its tasks. This can’t be undone.
+                This will permanently delete <Text style={{ fontWeight: 'bold', color: '#e53935' }}>&ldquo;{projectName}&rdquo;</Text> and all its tasks. This can’t be undone.
               </Text>
               <View style={styles.deleteActions}>
                 <TouchableOpacity

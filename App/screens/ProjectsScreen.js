@@ -4,7 +4,7 @@ import { useTaskContext } from '../context/TaskContext';
 import { useNavigation } from '@react-navigation/native';
 import FAB from '../components/FAB';
 import AddTaskModal from '../components/AddTaskModal';
-import Ionicons from 'react-native-vector-icons/Ionicons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 
 
 

@@ -1,5 +1,5 @@
 import React, { useState, } from 'react';
-import { View, Text, SectionList, TouchableOpacity, StyleSheet, Image, } from 'react-native';
+import { View, Text, SectionList, StyleSheet, Image, } from 'react-native';
 import { isAfter } from 'date-fns';
 import { useTaskContext } from '../context/TaskContext';
 import { groupTasksByDate } from '../utils/groupTasks';
