@@ -4,7 +4,7 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import { useTaskContext } from '../context/TaskContext';
 import TaskDetailModal from '../components/TaskDetailModal';
 import FAB from '../components/FAB';
-import AddTaskModal from '../components/AddTaskModal';
+import {useChatBot} from '../context/ChatBotContext';;
 import TaskCard from '../components/TaskCard';
 import { Snackbar } from 'react-native-paper';
 import { Ionicons } from '@expo/vector-icons';
@@ -13,8 +13,10 @@ const ProjectDetailScreen = () => {
   const navigation = useNavigation();
   const { params } = useRoute();
   const { projectId, projectName } = params;
+
   const { state, toggleComplete, getTasksByProject, deleteProject, updateProject, moveTo } = useTaskContext();
-  const [taskModalVisible, setTaskModalVisible] = useState(false);
+  const { openChatBot } = useChatBot();
+
   const [snackbarVisible, setSnackbarVisible] = useState(false);
   const [lastCompletedTask, setLastCompletedTask] = useState(null);
   const [detailModalVisible, setDetailModalVisible] = useState(false);
@@ -121,14 +123,8 @@ const ProjectDetailScreen = () => {
         }
       />
 
-      <FAB onPress={() => setTaskModalVisible(true)} />
+      <FAB onPress={openChatBot} />
 
-      <AddTaskModal
-        visible={taskModalVisible}
-        onClose={() => setTaskModalVisible(false)}
-        defaultProjectId={projectId}
-        defaultCategory="projects"
-      />
 
       {selectedTask && detailModalVisible && (
         <TaskDetailModal

@@ -3,15 +3,16 @@ import { View, Text, FlatList, TouchableOpacity, Modal, TextInput, StyleSheet, I
 import { useTaskContext } from '../context/TaskContext';
 import { useNavigation } from '@react-navigation/native';
 import FAB from '../components/FAB';
-import AddTaskModal from '../components/AddTaskModal';
+import { useChatBot } from '../context/ChatBotContext';
 import Ionicons from '@expo/vector-icons/Ionicons';
 
 
 
 const ProjectScreen = () => {
   const { state, addProject } = useTaskContext();
+  const { openChatBot } = useChatBot();
+
   const [modalVisible, setModalVisible] = useState(false);
-  const [taskModalVisible, setTaskModalVisible] = useState(false);
   const [projectName, setProjectName] = useState('');
   const navigation = useNavigation();
 
@@ -94,7 +95,7 @@ const ProjectScreen = () => {
         contentContainerStyle={{ paddingBottom: 80 }}
       />
 
-      <FAB onPress={() => setTaskModalVisible(true)} />
+      <FAB onPress={openChatBot} />
 
       {/* Add Project Modal */}
       <Modal
@@ -137,10 +138,7 @@ const ProjectScreen = () => {
         </TouchableWithoutFeedback>
       </Modal>
 
-      <AddTaskModal
-        visible={taskModalVisible}
-        onClose={() => setTaskModalVisible(false)}
-      />
+
     </View>
   );
 };

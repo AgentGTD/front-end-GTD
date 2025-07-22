@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, TextInput, Modal, TouchableOpacity, StyleSheet, TouchableWithoutFeedback, Platform } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, TouchableWithoutFeedback, Platform } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useTaskContext } from '../context/TaskContext';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
+import Modal from 'react-native-modal'; 
 
 const PRIORITY_COLORS = ['#e53935', '#fb8c00', '#1976d2', '#43a047', '#757575'];
 
@@ -94,75 +95,75 @@ const AddTaskModal = ({ visible, onClose, defaultProjectId, defaultCategory, def
 );
 
   return (
-    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
-      <TouchableWithoutFeedback onPress={onClose}>
-        <View style={styles.overlay}>
-          <TouchableWithoutFeedback>
-            <View style={styles.modal}>
-              <TextInput
-                ref={inputRef}
-                style={styles.input}
-                placeholder="Task Name"
-                value={title}
-                onChangeText={setTitle}
-                placeholderTextColor="#bbb"
-              />
-              <TextInput
-                style={styles.descriptionInput}
-                placeholder="Description"
-                value={description}
-                onChangeText={setDescription}
-                multiline
-                placeholderTextColor="#ccc"
-              />
+    <Modal
+      isVisible={visible}
+      onBackdropPress={onClose}
+      onSwipeComplete={onClose}
+      /*
+      swipeDirection="down"
+      animationIn="slideInUp"
+      animationOut="slideOutDown"
+      */
+      style={{ justifyContent: 'flex-end', margin: 0 }}
+      useNativeDriver
+      propagateSwipe
+      onRequestClose={onClose}
+    >
+      <TouchableWithoutFeedback>
+        <View style={styles.modal}>
+          <TextInput
+            ref={inputRef}
+            style={styles.input}
+            placeholder="Task Name"
+            value={title}
+            onChangeText={setTitle}
+            placeholderTextColor="#bbb"
+          />
+          <TextInput
+            style={styles.descriptionInput}
+            placeholder="Description"
+            value={description}
+            onChangeText={setDescription}
+            multiline
+            placeholderTextColor="#ccc"
+          />
 
-              <View style={styles.optionsRow}>
-                {/* Calendar Button */}
-                <TouchableOpacity
-                  style={styles.optionButton}
-                  onPress={() => setShowPicker(true)}
-                >
-                  <Ionicons name="calendar" size={18} color="#757575" />
-                  <Text style={[
-                    styles.optionButtonText
-                  ]}>
-                    {formatDueDate(dueDate)}
-                  </Text>
-                </TouchableOpacity>
+          <View style={styles.optionsRow}>
+            {/* Calendar Button */}
+            <TouchableOpacity
+              style={styles.optionButton}
+              onPress={() => setShowPicker(true)}
+            >
+              <Ionicons name="calendar" size={18} color="#757575" />
+              <Text style={styles.optionButtonText}>
+                {formatDueDate(dueDate)}
+              </Text>
+            </TouchableOpacity>
 
-                {/* Priority Button */}
-                <TouchableOpacity
-                  style={styles.optionButton}
-                  onPress={() => setShowPriorityModal(true)}
-                >
-                  <MaterialIcons name="flag" size={18} color="#757575" />
-                  <Text style={[
-                    styles.optionButtonText
-                  ]}>
-                    Priority
-                  </Text>
-                  <Text style={[
-                    styles.priorityLabel,
-                    { color: PRIORITY_COLORS[priority - 1] }
-                  ]}>
-                    {' P' + priority}
-                  </Text>
-                </TouchableOpacity>
-              </View>
+            {/* Priority Button */}
+            <TouchableOpacity
+              style={styles.optionButton}
+              onPress={() => setShowPriorityModal(true)}
+            >
+              <MaterialIcons name="flag" size={18} color="#757575" />
+              <Text style={styles.optionButtonText}>Priority</Text>
+              <Text style={[styles.priorityLabel, { color: PRIORITY_COLORS[priority - 1] }]}>
+                {' P' + priority}
+              </Text>
+            </TouchableOpacity>
+          </View>
 
-              {/* FAB */}
-              <TouchableOpacity
-                style={[
-                  styles.fab,
-                  { backgroundColor: title.trim() ? '#007AFF' : '#ccc' }
-                ]}
-                onPress={handleAdd}
-                disabled={!title.trim()}
-              >
-                <Ionicons name="send" size={28} color="white" />
-              </TouchableOpacity>
-            </View>
-          </TouchableWithoutFeedback>
+          {/* FAB */}
+          <TouchableOpacity
+            style={[
+              styles.fab,
+              { backgroundColor: title.trim() ? '#007AFF' : '#ccc' }
+            ]}
+            onPress={handleAdd}
+            disabled={!title.trim()}
+          >
+            <Ionicons name="send" size={28} color="white" />
+          </TouchableOpacity>
         </View>
       </TouchableWithoutFeedback>
 
@@ -258,7 +259,7 @@ const styles = StyleSheet.create({
   },
   bottomSheetOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.18)',
+    backgroundColor: 'rgba(0,0,0,0)',
     justifyContent: 'flex-end', 
   },
   bottomSheet: {

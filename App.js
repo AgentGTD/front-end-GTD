@@ -6,12 +6,30 @@ import AppNavigator from './navigation/AppNavigator';
 import SplashScreen from './screens/SplashScreen';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_BASE_URL } from './apiConfig';
+import { ChatBotProvider, useChatBot } from './context/ChatBotContext';
+import ChatBotModal from './components/ChatBotModal';
 
 const Testuser = { 
         email: "testuser@example.com",
          password: "yourpassword" 
         }
 
+
+function AppRoot() {
+  const { visible, closeChatBot } = useChatBot();
+  const [token, setToken] = useState(null);
+
+  useEffect(() => {
+    AsyncStorage.getItem('token').then(setToken);
+  }, [visible]); // refetch token when modal opens
+
+  return (
+    <>
+      <AppNavigator />
+      <ChatBotModal visible={visible} onClose={closeChatBot} token={token} />
+    </>
+  );
+}
 
 export default function App() {
   const [showSplash, setShowSplash] = useState(true);
@@ -49,11 +67,13 @@ export default function App() {
     return <SplashScreen />;
   }
   return (
-    <TaskProvider>
+   <TaskProvider>
+    <ChatBotProvider>
       <NavigationContainer>
         <StatusBar style="dark" backgroundColor="#f6f8fa" translucent />
-        <AppNavigator />
+        <AppRoot />
       </NavigationContainer>
-    </TaskProvider>
+    </ChatBotProvider>
+   </TaskProvider>
   );
 }

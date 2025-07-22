@@ -4,16 +4,18 @@ import { isAfter } from 'date-fns';
 import { useTaskContext } from '../context/TaskContext';
 import { groupTasksByDate } from '../utils/groupTasks';
 import FAB from '../components/FAB';
-import AddTaskModal from '../components/AddTaskModal';
+import { useChatBot } from '../context/ChatBotContext';
 import TaskDetailModal from '../components/TaskDetailModal';
 import TaskCard from '../components/TaskCard';
 import { Snackbar } from 'react-native-paper';
 
 const InboxScreen = () => {
   const { state,  toggleComplete, moveTo } = useTaskContext();
-  const [modalVisible, setModalVisible] = useState(false);
+  const { openChatBot } = useChatBot();
+  
   const [detailModalVisible, setDetailModalVisible] = useState(false);
   const [selectedTask, setSelectedTask] = useState(null);
+
 
   // Snackbar state
   const [snackbarVisible, setSnackbarVisible] = useState(false);
@@ -96,12 +98,7 @@ const InboxScreen = () => {
       />
       )}
 
-      <FAB onPress={() => setModalVisible(true)} />
-
-      <AddTaskModal
-        visible={modalVisible}
-        onClose={() => setModalVisible(false)}
-      />
+      <FAB onPress={openChatBot} />
 
       {selectedTask && detailModalVisible && (
         <TaskDetailModal
@@ -144,13 +141,14 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     paddingHorizontal: 16,
-     backgroundColor: '#f6f8fa',
+    backgroundColor: '#f6f8fa',
   },
   header: {
     fontSize: 24,
     fontWeight: '700',
     paddingVertical: 12,
     marginTop: 35,
+    marginBottom: 5,
     color: '#222',
   },
   taskItem: {

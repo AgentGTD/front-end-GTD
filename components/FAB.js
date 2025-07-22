@@ -5,7 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 const FAB = ({ onPress }) => {
   return (
     <TouchableOpacity style={styles.fab} onPress={onPress}>
-      <Ionicons name="add" size={28} color="#fff" />
+      <Ionicons name="bulb" size={32} color="#fff" />
     </TouchableOpacity>
   );
 };

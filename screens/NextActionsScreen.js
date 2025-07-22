@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, FlatList, TouchableOpacity, StyleSheet, TextInput,  Modal, Image } from 'react-native';
 import { useTaskContext } from '../context/TaskContext';
 import FAB from '../components/FAB';
-import AddTaskModal from '../components/AddTaskModal';
+import {useChatBot} from '../context/ChatBotContext';
 import { Ionicons } from '@expo/vector-icons';
 import TaskCard from '../components/TaskCard'; 
 import TaskDetailModal from '../components/TaskDetailModal';
@@ -11,7 +11,8 @@ import { Snackbar } from 'react-native-paper';
 
 const NextActionScreen = ({ navigation }) => {
   const { state, deleteContext, toggleComplete, moveTo } = useTaskContext();
-  const [modalVisible, setModalVisible] = useState(false);
+  const { openChatBot } = useChatBot();
+
   const [search, setSearch] = useState('');
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
   const [contextToDelete, setContextToDelete] = useState(null);
@@ -187,13 +188,9 @@ const renderProject = ({ item }) => {
   contentContainerStyle={{ paddingBottom: 80 }}
 />
 
-      <FAB onPress={() => setModalVisible(true)} />
+      <FAB onPress={openChatBot} />
 
-      <AddTaskModal
-        visible={modalVisible}
-        onClose={() => setModalVisible(false)}
-        defaultCategory="nextActions"
-      />
+    
 
        {selectedTask && detailModalVisible && (
         <TaskDetailModal

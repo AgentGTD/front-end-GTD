@@ -3,14 +3,15 @@ import { View, Text, FlatList, StyleSheet, Image } from 'react-native';
 import { Snackbar } from 'react-native-paper';
 import { useTaskContext } from '../context/TaskContext';
 import TaskCard from '../components/TaskCard';
-import AddTaskModal from '../components/AddTaskModal';
 import FAB from '../components/FAB';
+import { useChatBot } from '../context/ChatBotContext';
 import { isToday, isBefore } from '../utils/dateUtils';
 import TaskDetailModal from '../components/TaskDetailModal';
 
 const TodayScreen = () => {
   const { state, toggleComplete, moveTo } = useTaskContext();
-  const [modalVisible, setModalVisible] = useState(false);
+  const { openChatBot } = useChatBot();
+
   const [detailModalVisible, setDetailModalVisible] = useState(false);
   const [selectedTask, setSelectedTask] = useState(null);
   const [snackbarVisible, setSnackbarVisible] = useState(false);
@@ -85,8 +86,7 @@ const TodayScreen = () => {
       />
       )}
 
-      <FAB onPress={() => setModalVisible(true)} />
-      <AddTaskModal visible={modalVisible} onClose={() => setModalVisible(false)} />
+      <FAB onPress={openChatBot} />
 
       {selectedTask && detailModalVisible && (
         <TaskDetailModal
@@ -129,8 +129,8 @@ const TodayScreen = () => {
 export default TodayScreen;
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 16,  backgroundColor: '#f6f8fa'  },
-  header: { fontSize: 22, fontWeight: 'bold', marginBottom: 15, marginTop: 35, color: '#222' },
+  container: { flex: 1, paddingHorizontal: 16,  backgroundColor: '#f6f8fa'  },
+  header: { fontSize: 22, fontWeight: 'bold', marginBottom: 5, marginTop: 35, color: '#222', paddingVertical: 12, },
   empty: { color: '#777', fontSize: 16, textAlign: 'center', marginTop: 40 },
 });
 

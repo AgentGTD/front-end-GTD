@@ -79,7 +79,6 @@ export const TaskProvider = ({ children }) => {
   const [state, dispatch] = useReducer(reducer, initialState);
 
   // Fetch all data from backend on app start
-  useEffect(() => {
     const fetchAll = async () => {
       const token = await AsyncStorage.getItem('token');
       // Fetch tasks
@@ -107,6 +106,8 @@ export const TaskProvider = ({ children }) => {
         dispatch({ type: 'SET_CONTEXTS', payload: contextsData.nextActions });
       }
     };
+    
+    useEffect(() => {
     fetchAll();
   }, []);
 
@@ -175,7 +176,7 @@ export const TaskProvider = ({ children }) => {
       category: task.category,
       projectId: task.projectId || null,
       nextActionId: task.nextActionId || null,
-      completed: !task.completed, // <-- toggle here
+      completed: !task.completed, 
     };
 
     const res = await fetch(`${API_BASE_URL}/api/tasks/${taskId}`, {
@@ -337,6 +338,7 @@ export const TaskProvider = ({ children }) => {
         getTasksByProject,
         toggleComplete,
         moveTo,
+        refreshAll: fetchAll,
       }}
     >
       {children}
