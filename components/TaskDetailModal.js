@@ -150,7 +150,7 @@ const TaskDetailModal = ({ visible, task, onClose, moveTo, onComplete }) => {
                 style={styles.input}
               />
               <TouchableOpacity onPress={handleMoveToProject} style={styles.sheetActionBtn}>
-                <Text style={{ color: '#007AFF', fontWeight: 'bold' }}>Confirm</Text>
+                <Text style={{ color: '#fff', fontWeight: 'bold' }}>Confirm</Text>
               </TouchableOpacity>
             </View>
           </TouchableWithoutFeedback>
@@ -192,7 +192,7 @@ const TaskDetailModal = ({ visible, task, onClose, moveTo, onComplete }) => {
                 style={styles.input}
               />
               <TouchableOpacity onPress={handleMoveToNext} style={styles.sheetActionBtn}>
-                <Text style={{ color: '#007AFF', fontWeight: 'bold' }}>Confirm</Text>
+                <Text style={{ color: '#fff', fontWeight: 'bold' }}>Confirm</Text>
               </TouchableOpacity>
             </View>
           </TouchableWithoutFeedback>
@@ -215,30 +215,35 @@ const TaskDetailModal = ({ visible, task, onClose, moveTo, onComplete }) => {
                   setEditableTask({ ...editableTask, title: text })
                 }
               />
-              <TouchableOpacity
-                style={styles.row}
-                onPress={() => setShowDatePicker(true)}
-              >
-                <Ionicons name="calendar-outline" size={20} color="#007AFF" style={{ marginRight: 8 }} />
-                <Text style={{ fontSize: 16 }}>
-                  {editableTask.dueDate
-                    ? new Date(editableTask.dueDate).toDateString()
-                    : 'Set Due Date'}
-                </Text>
-              </TouchableOpacity>
-                {showDatePicker && (
-                    <DateTimePicker
-                      value={editableTask.dueDate ? new Date(editableTask.dueDate) : new Date()}
-                      mode="date"
-                      display={Platform.OS === 'ios' ? 'inline' : 'default'}
-                      onChange={(e, selectedDate) => {
-                        setShowDatePicker(false);
-                        if (selectedDate) {
-                          setEditableTask({ ...editableTask, dueDate: selectedDate.toISOString() });
-                        }
-                      }}
-                    />
-                  )}
+             { editableTask.description ? (<TextInput
+                style={styles.descInput}
+                value={editableTask.description}
+                onChangeText={(text) =>
+                  setEditableTask({ ...editableTask, description: text })
+                }
+              /> ) : null }
+
+              <TouchableOpacity style={{flexDirection: 'row', alignItems: 'center', marginLeft: 3, gap: 4}} onPress={() => setShowDatePicker(true)}>
+                      <Ionicons name="calendar-outline" size={21} color="#007BFF" style={{ marginRight: 6 }} />
+                      <Text style={styles.dueText}>
+                        {editableTask.dueDate
+                          ? new Date(editableTask.dueDate).toDateString()
+                          : 'No due date'}
+                      </Text>
+                    </TouchableOpacity>
+                    {showDatePicker && (
+                      <DateTimePicker
+                        value={editableTask.dueDate ? new Date(editableTask.dueDate) : new Date()}
+                        mode="date"
+                        display={Platform.OS === 'ios' ? 'inline' : 'default'}
+                        onChange={(e, selectedDate) => {
+                          setShowDatePicker(false);
+                          if (selectedDate) {
+                            setEditableTask({ ...editableTask, dueDate: selectedDate.toISOString() });
+                          }
+                        }}
+                      />
+                    )}
               <TouchableOpacity
                 onPress={() => {
                   updateTask(editableTask);
@@ -246,7 +251,7 @@ const TaskDetailModal = ({ visible, task, onClose, moveTo, onComplete }) => {
                 }}
                 style={[styles.sheetActionBtn, { marginTop: 18 }]}
               >
-                <Text style={{ color: '#007AFF', fontWeight: 'bold' }}>Done</Text>
+                <Text style={{ color: '#fff', fontWeight: 'bold' }}>Done</Text>
               </TouchableOpacity>
             </View>
           </TouchableWithoutFeedback>
@@ -303,7 +308,7 @@ const TaskDetailModal = ({ visible, task, onClose, moveTo, onComplete }) => {
                           : 'No due date'}
                       </Text>
                     </TouchableOpacity>
-                    {showDatePicker && (
+                    {showDatePicker  && !editableTask.completed && (
                       <DateTimePicker
                         value={editableTask.dueDate ? new Date(editableTask.dueDate) : new Date()}
                         mode="date"
@@ -350,7 +355,7 @@ const TaskDetailModal = ({ visible, task, onClose, moveTo, onComplete }) => {
                 </View>
 
 
-                <View style={{ marginVertical: 2 }}>
+               {editableTask.completed ? null : (<View style={{ marginVertical: 2 }}>
                   <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                     <View style={styles.pillRow}>
                       <TouchableOpacity style={styles.pillBtn} onPress={() => setModalType('priority')}>
@@ -372,11 +377,19 @@ const TaskDetailModal = ({ visible, task, onClose, moveTo, onComplete }) => {
                     </View>
                   </ScrollView>
                 </View>
+  )}
 
                 {/* Save/Cancel */}
-                <TouchableOpacity onPress={handleSave} style={styles.saveBtn}>
+                {editableTask.completed ?  (
+                  <View  style={styles.placeSaveBtn}>
+                  <Text style={{ color: '#fff', fontWeight: 'bold' }}>Save</Text>
+                </View>
+                ) : (
+                  <TouchableOpacity onPress={handleSave} style={styles.saveBtn}>
                   <Text style={{ color: '#fff', fontWeight: 'bold' }}>Save</Text>
                 </TouchableOpacity>
+                )}
+                
                 {/* 
                 <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
                   <Text style={{ color: '#f44336', fontWeight: 'bold' }}>Cancel</Text>
@@ -424,6 +437,8 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#222',
     marginBottom: 2,
+    flex: 1,
+    flexWrap: 'wrap',
   },
   descRow: {
     flexDirection: 'row',
@@ -496,6 +511,14 @@ const styles = StyleSheet.create({
   },
   saveBtn: {
     backgroundColor: '#007AFF',
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginTop: 8,
+    marginBottom: 20,
+  },
+  placeSaveBtn: {
+    backgroundColor: '#77afeaff',
     paddingVertical: 12,
     borderRadius: 8,
     alignItems: 'center',
@@ -579,16 +602,29 @@ const styles = StyleSheet.create({
     padding: 12,
     alignItems: 'center',
     borderRadius: 8,
-    backgroundColor: '#f6f8fa',
+    backgroundColor: '#007AFF',
     marginTop: 8,
   },
   titleInput: {
-    fontSize: 18,
-    fontWeight: '600',
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#333',
     marginBottom: 16,
     borderBottomWidth: 1,
     borderColor: '#ccc',
     paddingBottom: 4,
+    flex: 1,
+    flexWrap: 'nowrap',
+  },
+  descInput: {
+    fontSize: 18,
+    color: '#333',
+    marginBottom: 16,
+    borderBottomWidth: 1,
+    borderColor: '#ccc',
+    paddingBottom: 4,
+    flex: 1,
+    flexWrap: 'wrap',
   },
   circleCol: {
     alignItems: 'flex-start',

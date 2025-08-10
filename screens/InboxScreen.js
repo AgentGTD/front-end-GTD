@@ -8,17 +8,21 @@ import { useChatBot } from '../context/ChatBotContext';
 import TaskDetailModal from '../components/TaskDetailModal';
 import TaskCard from '../components/TaskCard';
 import { Snackbar } from 'react-native-paper';
+import MenuComponent from '../components/MenuComponent';
+import { useSnackbar } from '../context/SnackBarContext'; 
 
 const InboxScreen = () => {
   const { state,  toggleComplete, moveTo } = useTaskContext();
   const { openChatBot } = useChatBot();
+  const { showSnackbar } = useSnackbar();
   
   const [detailModalVisible, setDetailModalVisible] = useState(false);
   const [selectedTask, setSelectedTask] = useState(null);
+  const [menuVisible, setMenuVisible] = useState(false);
 
 
   // Snackbar state
-  const [snackbarVisible, setSnackbarVisible] = useState(false);
+  //const [snackbarVisible, setSnackbarVisible] = useState(false);
   const [lastCompletedTask, setLastCompletedTask] = useState(null);
 
  const handleMoveTo = (id, category, payload) => {
@@ -26,18 +30,23 @@ const InboxScreen = () => {
     setDetailModalVisible(false);
     setSelectedTask(null);
   };
+  
+  
   // Handler for completing a task
-  const handleComplete = (task) => {
+   const handleComplete = (task) => {
     toggleComplete(task.id);
     setLastCompletedTask(task);
-    setSnackbarVisible(true);
+    showSnackbar(
+      `${task.title} completed!`,
+      () => handleUndo(), // Undo action
+      'Undo'
+    );
   };
 
   // Handler for undo
   const handleUndo = () => {
     if (lastCompletedTask) {
-      toggleComplete(lastCompletedTask.id); // Un-complete
-      setSnackbarVisible(false);
+      toggleComplete(lastCompletedTask.id); 
     }
   };
 
@@ -64,7 +73,10 @@ const InboxScreen = () => {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.header}>Inbox</Text>
+      <View style={styles.headerRow}>
+        <Text style={styles.header}>Inbox</Text>
+        <MenuComponent visible={menuVisible} onClose={() => setMenuVisible(false)} style={styles.menu} />
+      </View>
 
       {grouped.length === 0 ? (
         <View style={{ alignItems: 'center', marginTop: 60 }}>
@@ -112,25 +124,6 @@ const InboxScreen = () => {
           onComplete={handleComplete} 
         />
       )}
-
-      <Snackbar
-        visible={snackbarVisible}
-        onDismiss={() => setSnackbarVisible(false)}
-        duration={3000}
-        action={{
-          label: 'Undo',
-          onPress: handleUndo,
-          labelStyle: { color: '#007AFF', fontWeight: 'bold' },
-        }}
-        style={{ backgroundColor: '#222', marginBottom: 45, marginLeft: 15, borderRadius: 8 }}
-      >
-        <Text style={{ fontWeight: 'bold', color: '#fff' }}>
-          {lastCompletedTask?.title}{'  '}
-          <Text style={{ fontWeight: 'normal', color: '#fff'}}>
-            Completed !!
-          </Text>
-        </Text>
-      </Snackbar>
     </View>
   );
 };
@@ -143,13 +136,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     backgroundColor: '#f6f8fa',
   },
+  headerRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingVertical: 12,
+      marginBottom: 5,
+  },
   header: {
     fontSize: 24,
     fontWeight: '700',
-    paddingVertical: 12,
-    marginTop: 35,
-    marginBottom: 5,
     color: '#222',
+  },
+  menu:{
+     paddingRight: 10
   },
   taskItem: {
     marginBottom: 12,

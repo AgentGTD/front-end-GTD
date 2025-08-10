@@ -1,9 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, TouchableWithoutFeedback, Platform } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, TouchableWithoutFeedback, Platform, KeyboardAvoidingView, Modal } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useTaskContext } from '../context/TaskContext';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
-import Modal from 'react-native-modal'; 
 
 const PRIORITY_COLORS = ['#e53935', '#fb8c00', '#1976d2', '#43a047', '#757575'];
 
@@ -11,7 +10,7 @@ const AddTaskModal = ({ visible, onClose, defaultProjectId, defaultCategory, def
   const { addTask } = useTaskContext(); 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [priority, setPriority] = useState(5);
+  const [priority, setPriority] = useState(3);
   const [dueDate, setDueDate] = useState(new Date());
   const [showPicker, setShowPicker] = useState(false);
   const [showPriorityModal, setShowPriorityModal] = useState(false);
@@ -19,7 +18,7 @@ const AddTaskModal = ({ visible, onClose, defaultProjectId, defaultCategory, def
 
   useEffect(() => {
     if (visible) {
-      setTimeout(() => inputRef.current?.focus(), 100);
+      setTimeout(() => inputRef.current?.focus(), 200);
     }
   }, [visible]);
 
@@ -62,108 +61,129 @@ const AddTaskModal = ({ visible, onClose, defaultProjectId, defaultCategory, def
   };
 
   const renderPriorityModal = () => (
-  <Modal visible={showPriorityModal} animationType="slide" transparent onRequestClose={() => setShowPriorityModal(false)}>
-    <TouchableWithoutFeedback onPress={() => setShowPriorityModal(false)}>
-      <View style={styles.bottomSheetOverlay}>
-        <TouchableWithoutFeedback>
-          <View style={styles.bottomSheet}>
-            <Text style={styles.sheetTitle}>Priority</Text>
-            <View style={styles.priorityRow}>
-              {[1, 2, 3, 4, 5].map((p, idx) => (
-                <TouchableOpacity
-                  key={p}
-                  style={[
-                    styles.priorityFlag,
-                    priority === p && styles.selectedFlag,
-                    { borderColor: PRIORITY_COLORS[idx] },
-                  ]}
-                  onPress={() => {
-                    setPriority(p);
-                    setShowPriorityModal(false);
-                  }}
-                >
-                  <MaterialIcons name="flag" size={28} color={PRIORITY_COLORS[idx]} />
-                  <Text style={styles.flagLabel}>P{p}</Text>
-                </TouchableOpacity>
-              ))}
+    <Modal visible={showPriorityModal} animationType="slide" transparent onRequestClose={() => setShowPriorityModal(false)}>
+      <TouchableWithoutFeedback onPress={() => setShowPriorityModal(false)}>
+        <View style={styles.bottomSheetOverlay}>
+          <TouchableWithoutFeedback>
+            <View style={styles.bottomSheet}>
+              <Text style={styles.sheetTitle}>Priority</Text>
+              <View style={styles.priorityRow}>
+                {[1, 2, 3, 4, 5].map((p, idx) => (
+                  <TouchableOpacity
+                    key={p}
+                    style={[
+                      styles.priorityFlag,
+                      priority === p && styles.selectedFlag,
+                      { borderColor: PRIORITY_COLORS[idx] },
+                    ]}
+                    onPress={() => {
+                      setPriority(p);
+                      setShowPriorityModal(false);
+                    }}
+                  >
+                    <MaterialIcons name="flag" size={28} color={PRIORITY_COLORS[idx]} />
+                    <Text style={styles.flagLabel}>P{p}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
             </View>
-          </View>
-        </TouchableWithoutFeedback>
-      </View>
-    </TouchableWithoutFeedback>
-  </Modal>
-);
+          </TouchableWithoutFeedback>
+        </View>
+      </TouchableWithoutFeedback>
+    </Modal>
+  );
 
   return (
     <Modal
-      isVisible={visible}
+      visible={visible}
+      animationType="slide"
+      transparent
+      onRequestClose={onClose}
       onBackdropPress={onClose}
       onSwipeComplete={onClose}
-      /*
-      swipeDirection="down"
-      animationIn="slideInUp"
-      animationOut="slideOutDown"
-      */
-      style={{ justifyContent: 'flex-end', margin: 0 }}
-      useNativeDriver
-      propagateSwipe
-      onRequestClose={onClose}
+      statusBarTranslucent
     >
-      <TouchableWithoutFeedback>
-        <View style={styles.modal}>
-          <TextInput
-            ref={inputRef}
-            style={styles.input}
-            placeholder="Task Name"
-            value={title}
-            onChangeText={setTitle}
-            placeholderTextColor="#bbb"
-          />
-          <TextInput
-            style={styles.descriptionInput}
-            placeholder="Description"
-            value={description}
-            onChangeText={setDescription}
-            multiline
-            placeholderTextColor="#ccc"
-          />
-
-          <View style={styles.optionsRow}>
-            {/* Calendar Button */}
-            <TouchableOpacity
-              style={styles.optionButton}
-              onPress={() => setShowPicker(true)}
+      <TouchableWithoutFeedback onPress={()=> {
+        setShowPriorityModal(false);
+        setShowPicker(false);
+        onClose();
+      }}>
+        <View style={styles.modalOverlay}>
+          <TouchableWithoutFeedback>
+            <KeyboardAvoidingView 
+              behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+              style={styles.keyboardView}
             >
-              <Ionicons name="calendar" size={18} color="#757575" />
-              <Text style={styles.optionButtonText}>
-                {formatDueDate(dueDate)}
-              </Text>
-            </TouchableOpacity>
+              <View style={styles.modal}>
+                <View style={styles.modalHeader}>
+                  <View style={styles.sheetHandle} />
+                  <Text style={styles.modalTitle}>New Task</Text>
+                </View>
 
-            {/* Priority Button */}
-            <TouchableOpacity
-              style={styles.optionButton}
-              onPress={() => setShowPriorityModal(true)}
-            >
-              <MaterialIcons name="flag" size={18} color="#757575" />
-              <Text style={styles.optionButtonText}>Priority</Text>
-              <Text style={[styles.priorityLabel, { color: PRIORITY_COLORS[priority - 1] }]}>
-                {' P' + priority}
-              </Text>
-            </TouchableOpacity>
-          </View>
+                <View style={styles.inputContainer}>
+                  <TextInput
+                    ref={inputRef}
+                    style={styles.titleInput}
+                    placeholder="What needs to be done?"
+                    value={title}
+                    onChangeText={setTitle}
+                    placeholderTextColor="#999"
+                    autoFocus
+                  />
+                  
+                  <TextInput
+                    style={styles.descriptionInput}
+                    placeholder="Description"
+                    value={description}
+                    onChangeText={setDescription}
+                    multiline
+                    placeholderTextColor="#999"
+                  />
+                </View>
 
-          {/* FAB */}
-          <TouchableOpacity
-            style={[
-              styles.fab,
-              { backgroundColor: title.trim() ? '#007AFF' : '#ccc' }
-            ]}
-            onPress={handleAdd}
-            disabled={!title.trim()}
-          >
-            <Ionicons name="send" size={28} color="white" />
-          </TouchableOpacity>
+                <View style={styles.optionsRow}>
+                  {/* Calendar Button */}
+                  <TouchableOpacity
+                    style={styles.optionButton}
+                    onPress={() => setShowPicker(true)}
+                    activeOpacity={0.7}
+                  >
+                    <Ionicons name="calendar" size={20} color="#757575" />
+                    <Text style={styles.optionButtonText}>
+                      {formatDueDate(dueDate)}
+                    </Text>
+                  </TouchableOpacity>
+
+                  {/* Priority Button */}
+                  <TouchableOpacity
+                    style={styles.optionButton}
+                    onPress={() => setShowPriorityModal(true)}
+                    activeOpacity={0.7}
+                  >
+                    <MaterialIcons name="flag" size={20} color="#757575" />
+                    <Text style={styles.optionButtonText}>Priority</Text>
+                    <Text style={[styles.priorityLabel, { color: PRIORITY_COLORS[priority - 1] }]}>
+                      {' P' + priority}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+
+                {/* Action Button */}
+                <TouchableOpacity
+                  style={[
+                    styles.actionButton,
+                    { backgroundColor: title.trim() ? '#007AFF' : '#E0E0E0' }
+                  ]}
+                  onPress={handleAdd}
+                  disabled={!title.trim()}
+                  activeOpacity={0.8}
+                >
+                  <Ionicons name="add" size={24} color="white" />
+                  <Text style={styles.actionButtonText}>Create Task</Text>
+                </TouchableOpacity>
+              </View>
+            </KeyboardAvoidingView>
+          </TouchableWithoutFeedback>
         </View>
       </TouchableWithoutFeedback>
 
@@ -187,41 +207,70 @@ const AddTaskModal = ({ visible, onClose, defaultProjectId, defaultCategory, def
 };
 
 const styles = StyleSheet.create({
-  overlay: {
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  keyboardView: {
     flex: 1,
     justifyContent: 'flex-end',
-    backgroundColor: 'rgba(0,0,0,0.18)'
   },
   modal: {
     backgroundColor: '#fff',
-    padding: 20,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    minHeight: 250,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingHorizontal: 24,
+    paddingTop: 16,
+    paddingBottom: 32,
+    minHeight: 300,
     elevation: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
   },
-  input: {
-    fontSize: 22,
+  modalHeader: {
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  sheetHandle: {
+    width: 40,
+    height: 4,
+    backgroundColor: '#E0E0E0',
+    borderRadius: 2,
+    marginBottom: 16,
+  },
+  modalTitle: {
+    fontSize: 20,
     fontWeight: 'bold',
+    color: '#222',
+  },
+  inputContainer: {
+    marginBottom: 24,
+  },
+  titleInput: {
+    fontSize: 18,
+    fontWeight: '600',
     borderBottomWidth: 1,
-    borderColor: '#f1f1f1',
-    paddingVertical: 14,
-    marginBottom: 4,
-    color: '#333'
+    borderColor: '#F0F0F0',
+    paddingVertical: 16,
+    marginBottom: 16,
+    color: '#222',
   },
   descriptionInput: {
     borderBottomWidth: 1,
-    borderColor: '#f1f1f1',
+    borderColor: '#F0F0F0',
     fontSize: 16,
     color: '#555',
-    paddingVertical: 10,
-    marginBottom: 18,
-    minHeight: 40
+    paddingVertical: 12,
+    minHeight: 40,
+    lineHeight: 22,
   },
   optionsRow: {
     flexDirection: 'row',
-    marginBottom: 10,
-    gap: 10,
+    marginBottom: 32,
+    gap: 12,
   },
   optionButton: {
     flexDirection: 'row',
@@ -245,22 +294,28 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     fontSize: 15,
   },
-  fab: {
-    position: 'absolute',
-    right: 24,
-    bottom: 18,
-    backgroundColor: '#007AFF',
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+  actionButton: {
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    elevation: 4,
+    paddingVertical: 16,
+    borderRadius: 16,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  actionButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '600',
+    marginLeft: 8,
   },
   bottomSheetOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0)',
-    justifyContent: 'flex-end', 
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
   },
   bottomSheet: {
     backgroundColor: '#fff',
@@ -269,6 +324,11 @@ const styles = StyleSheet.create({
     padding: 22,
     minHeight: 180,
     maxHeight: '60%',
+    elevation: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
   },
   sheetTitle: {
     fontSize: 18,

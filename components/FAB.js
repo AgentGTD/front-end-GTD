@@ -1,11 +1,11 @@
 import React from 'react';
 import { TouchableOpacity, StyleSheet } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import Fontisto from '@expo/vector-icons/Fontisto';
 
 const FAB = ({ onPress }) => {
   return (
     <TouchableOpacity style={styles.fab} onPress={onPress}>
-      <Ionicons name="bulb" size={32} color="#fff" />
+      <Fontisto name="atom" size={28} color="#fff" />
     </TouchableOpacity>
   );
 };

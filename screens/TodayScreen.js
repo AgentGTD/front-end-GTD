@@ -1,21 +1,27 @@
-import React, { useState } from 'react';
-import { View, Text, FlatList, StyleSheet, Image } from 'react-native';
-import { Snackbar } from 'react-native-paper';
+import React, { useState, useRef } from 'react';
+import { View, Text, FlatList, StyleSheet, Image, TouchableOpacity } from 'react-native';
+import { useSnackbar } from '../context/SnackBarContext'; 
 import { useTaskContext } from '../context/TaskContext';
 import TaskCard from '../components/TaskCard';
 import FAB from '../components/FAB';
 import { useChatBot } from '../context/ChatBotContext';
 import { isToday, isBefore } from '../utils/dateUtils';
 import TaskDetailModal from '../components/TaskDetailModal';
+import MenuComponent from '../components/MenuComponent';
+
 
 const TodayScreen = () => {
   const { state, toggleComplete, moveTo } = useTaskContext();
   const { openChatBot } = useChatBot();
+  const { showSnackbar } = useSnackbar();
 
   const [detailModalVisible, setDetailModalVisible] = useState(false);
   const [selectedTask, setSelectedTask] = useState(null);
-  const [snackbarVisible, setSnackbarVisible] = useState(false);
+
   const [lastCompletedTask, setLastCompletedTask] = useState(null);
+  //const lastCompletedTaskId = useRef(null);
+  const [menuVisible, setMenuVisible] = useState(false);
+
 
   const today = new Date();
   const todayTasks = state.tasks
@@ -40,24 +46,31 @@ const TodayScreen = () => {
   };  
 
   // Handler for completing a task
-  const handleComplete = (task) => {
+   const handleComplete = (task) => {
     toggleComplete(task.id);
     setLastCompletedTask(task);
-    setSnackbarVisible(true);
+    showSnackbar(
+      `${task.title} completed!`,
+      () => handleUndo(), // Undo action
+      'Undo'
+    );
   };
 
   // Handler for undo
   const handleUndo = () => {
     if (lastCompletedTask) {
       toggleComplete(lastCompletedTask.id); 
-      setSnackbarVisible(false);
     }
   };
 
+
   return (
     <View style={styles.container}>
-      
-      <Text style={styles.header}>Today</Text>
+      <View style={styles.headerRow}>
+        <Text style={styles.header}>Today</Text>
+        <MenuComponent visible={menuVisible} onClose={() => setMenuVisible(false)} style={styles.menu} />
+      </View>
+     
       { (todayTasks.length === 0 && overdueTasks.length === 0) ? (
          <View style={{ alignItems: 'center', marginTop: 60 }}>
                   <Image
@@ -101,37 +114,33 @@ const TodayScreen = () => {
         />
       )}
 
-      <Snackbar
-        visible={snackbarVisible}
-        onDismiss={() => setSnackbarVisible(false)}
-        duration={5000}
-        action={{
-          label: 'Undo',
-          onPress: () => {
-            handleUndo();
-          },
-          labelStyle: { color: '#007AFF', fontWeight: 'bold' },
-        }}
-        style={{ backgroundColor: '#222', marginBottom: 45, marginLeft: 15, borderRadius: 8 }}
-      >
-        <Text style={{ fontWeight: 'bold', color: '#fff' }}>
-          {lastCompletedTask?.title}{'  '}
-          <Text style={{ fontWeight: 'normal', color: '#fff'}}>
-            Completed !!
-          </Text>
-        </Text>
-      </Snackbar>
     </View>
   );
 };
 
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    paddingHorizontal: 16,
+    backgroundColor: '#f6f8fa',
+  },
+  headerRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingVertical: 15,
+      marginBottom: 5,
+  },
+  menu:{
+     paddingRight: 10
+  },
+  header: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#222',
+  },
+});
 
 export default TodayScreen;
-
-const styles = StyleSheet.create({
-  container: { flex: 1, paddingHorizontal: 16,  backgroundColor: '#f6f8fa'  },
-  header: { fontSize: 22, fontWeight: 'bold', marginBottom: 5, marginTop: 35, color: '#222', paddingVertical: 12, },
-  empty: { color: '#777', fontSize: 16, textAlign: 'center', marginTop: 40 },
-});
 
 

@@ -6,17 +6,18 @@ import {useChatBot} from '../context/ChatBotContext';
 import { Ionicons } from '@expo/vector-icons';
 import TaskCard from '../components/TaskCard'; 
 import TaskDetailModal from '../components/TaskDetailModal';
-import { Snackbar } from 'react-native-paper';
+import { useSnackbar } from '../context/SnackBarContext'; 
 
 
 const NextActionScreen = ({ navigation }) => {
   const { state, deleteContext, toggleComplete, moveTo } = useTaskContext();
   const { openChatBot } = useChatBot();
+  const { showSnackbar } = useSnackbar();
+
 
   const [search, setSearch] = useState('');
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
   const [contextToDelete, setContextToDelete] = useState(null);
-  const [snackbarVisible, setSnackbarVisible] = useState(false);
   const [detailModalVisible, setDetailModalVisible] = useState(false);
   const [selectedTask, setSelectedTask] = useState(null);
  const [lastCompletedTask, setLastCompletedTask] = useState(null);
@@ -68,24 +69,30 @@ const NextActionScreen = ({ navigation }) => {
 
  
 
+// Handler for completing a task
    const handleComplete = (task) => {
     toggleComplete(task.id);
     setLastCompletedTask(task);
-    setSnackbarVisible(true);
+    showSnackbar(
+      `${task.title} completed!`,
+      () => handleUndo(), // Undo action
+      'Undo'
+    );
   };
 
+  // Handler for undo
+  const handleUndo = () => {
+    if (lastCompletedTask) {
+      toggleComplete(lastCompletedTask.id); 
+    }
+  };
   const handleMoveTo = (id, category, payload) => {
     moveTo(id, category, payload);
     setDetailModalVisible(false);
     setSelectedTask(null);
   };
 
-  const handleUndo = () => {
-    if (lastCompletedTask) {
-      toggleComplete(lastCompletedTask.id);
-      setSnackbarVisible(false);
-    }
-  };
+
 
     const handleOnPressItem= (item)  => {
       setSelectedTask(item);
@@ -125,11 +132,14 @@ const renderProject = ({ item }) => {
          <TouchableOpacity
            style={styles.projectCard}
            onPress={() =>
-             navigation.navigate('ProjectDetail', {
-               projectId: item.id,
-               projectName: item.name,
-             })
-           }
+             navigation.navigate('Projects', {
+          screen: 'ProjectDetail',
+          params: {
+            projectId: item.id,
+            projectName: item.name
+          }
+        })
+      }
            activeOpacity={0.85}
          >
            <View style={styles.projectLeft}>
@@ -204,27 +214,6 @@ const renderProject = ({ item }) => {
           onComplete={handleComplete} 
         />
       )}
-
-      <Snackbar
-        visible={snackbarVisible}
-        onDismiss={() => setSnackbarVisible(false)}
-        duration={3000}
-        action={{
-          label: 'Undo',
-          onPress: () => {
-            handleUndo();
-          },
-          labelStyle: { color: '#007AFF', fontWeight: 'bold' },
-        }}
-        style={{ backgroundColor: '#222', marginBottom: 45, marginLeft: 15, borderRadius: 8 }}
-      >
-        <Text style={{ fontWeight: 'bold', color: '#fff' }}>
-          {lastCompletedTask?.title}{'  '}
-          <Text style={{ fontWeight: 'normal', color: '#fff'}}>
-            Completed !!
-          </Text>
-        </Text>
-      </Snackbar>
 
       {/* Delete Context Modal */}
       <Modal
@@ -301,6 +290,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 16,
+    paddingVertical: 12,
     backgroundColor: '#f6f8fa',
   
   },
@@ -308,7 +298,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 10,
-     marginTop: 35,
   },
   header: {
     fontSize: 24,

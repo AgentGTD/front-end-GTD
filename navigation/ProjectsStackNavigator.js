@@ -17,7 +17,8 @@ export default function ProjectsStack() {
       <Stack.Screen
         name="ProjectDetail"
         component={ProjectDetailScreen}
-        options={{ title: 'Project Details' }} 
+        options={({ route }) => ({  title: route.params.projectName || 'Project Details', headerShown: true, headerBackgroundColor: '#f6f8fa', headerTransparent: true })} 
+        
 
       />
     </Stack.Navigator>

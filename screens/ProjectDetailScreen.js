@@ -6,8 +6,9 @@ import TaskDetailModal from '../components/TaskDetailModal';
 import FAB from '../components/FAB';
 import {useChatBot} from '../context/ChatBotContext';;
 import TaskCard from '../components/TaskCard';
-import { Snackbar } from 'react-native-paper';
+import { useSnackbar } from '../context/SnackBarContext'; 
 import { Ionicons } from '@expo/vector-icons';
+
 
 const ProjectDetailScreen = () => {
   const navigation = useNavigation();
@@ -16,11 +17,14 @@ const ProjectDetailScreen = () => {
 
   const { state, toggleComplete, getTasksByProject, deleteProject, updateProject, moveTo } = useTaskContext();
   const { openChatBot } = useChatBot();
+  const { showSnackbar } = useSnackbar();
 
-  const [snackbarVisible, setSnackbarVisible] = useState(false);
+
+  //const [snackbarVisible, setSnackbarVisible] = useState(false);
   const [lastCompletedTask, setLastCompletedTask] = useState(null);
   const [detailModalVisible, setDetailModalVisible] = useState(false);
   const [selectedTask, setSelectedTask] = useState(null);
+    const [savingName, setSavingName] = useState(false);
 
   // Menu and delete modal state
   const [menuVisible, setMenuVisible] = useState(false);
@@ -59,10 +63,22 @@ const ProjectDetailScreen = () => {
     />
   );
 
-  const handleComplete = (task) => {
+ // Handler for completing a task
+   const handleComplete = (task) => {
     toggleComplete(task.id);
     setLastCompletedTask(task);
-    setSnackbarVisible(true);
+    showSnackbar(
+      `${task.title} completed!`,
+      () => handleUndo(), // Undo action
+      'Undo'
+    );
+  };
+
+  // Handler for undo
+  const handleUndo = () => {
+    if (lastCompletedTask) {
+      toggleComplete(lastCompletedTask.id); 
+    }
   };
 
   const handleOnPressItem = (item) => {
@@ -77,12 +93,7 @@ const ProjectDetailScreen = () => {
   setDetailModalVisible(false);
   setSelectedTask(null);
 };
-  const handleUndo = () => {
-    if (lastCompletedTask) {
-      toggleComplete(lastCompletedTask.id);
-      setSnackbarVisible(false);
-    }
-  };
+  
 
 
   const handleDeleteProject = () => {
@@ -92,11 +103,16 @@ const ProjectDetailScreen = () => {
   };
 
   const handleSaveEdit = () => {
+    setSavingName(true);
+    setTimeout(() => {
+      setSavingName(false);
+    }, 1000);
     const updatedProject = {
       id: projectId,
       name: editName,
     };
     updateProject(updatedProject);
+    setSavingName(false);
     setEditModalVisible(false);
   };
 
@@ -110,7 +126,7 @@ const ProjectDetailScreen = () => {
           <View style={{ alignItems: 'center', marginTop: 60 }}>
                                               <Image
                                                 source={require('../assets/pds1.png')}
-                                                style={{ width: 350, height: 350, marginBottom: 24, opacity: 0.85, marginTop: -20 }}
+                                                style={{ width: 350, height: 350, marginBottom: 24, opacity: 0.85, marginTop: -10 }}
                                                 resizeMode="contain"
                                               />
                                               <Text style={{ fontSize: 18, color: '#333', fontWeight: '600', textAlign: 'center' }}>
@@ -139,25 +155,7 @@ const ProjectDetailScreen = () => {
         />
       )}
 
-      <Snackbar
-        visible={snackbarVisible}
-        onDismiss={() => setSnackbarVisible(false)}
-        duration={3000}
-        action={{
-          label: 'Undo',
-          onPress: handleUndo,
-          labelStyle: { color: '#007AFF', fontWeight: 'bold' },
-        }}
-        style={{ backgroundColor: '#222', marginBottom: 45, marginLeft: 15, borderRadius: 8 }}
-      >
-        <Text style={{ fontWeight: 'bold', color: '#fff' }}>
-          {lastCompletedTask?.title}{'  '}
-          <Text style={{ fontWeight: 'normal', color: '#fff'}}>
-            Completed !!
-          </Text>
-        </Text>
-      </Snackbar>
-
+    
       {/* --- 3-dots Menu --- */}
       <Modal
         visible={menuVisible}
@@ -256,28 +254,26 @@ const ProjectDetailScreen = () => {
                 placeholder="# Project Name"
               />
               <Text style={styles.editCount}>{editName.length}/120</Text>
-              <TouchableOpacity
-                style={styles.deleteBtn}
-                onPress={() => {
-                  handleDeleteProject();
-                  setEditModalVisible(false);
-                  setDeleteModalVisible(true);
-                }}
-              >
-                <Ionicons name="trash-outline" size={20} color="#e53935" />
-                <Text style={styles.deleteText}>DELETE</Text>
-              </TouchableOpacity>
-
-              {/* Save Button */}
-              <TouchableOpacity
-                style={styles.saveBtn}
-                onPress={() => {
-                  handleSaveEdit();
-                  setEditModalVisible(false);
-                }}
-              >
-                <Ionicons name="checkmark" size={22} color="#fff" />
-              </TouchableOpacity>
+              <View style={styles.modalButtonRow}>
+                            <TouchableOpacity
+                              style={styles.modalButton}
+                              onPress={() => setEditModalVisible(false)}
+                              disabled={savingName}
+                            >
+                              <Text style={styles.modalButtonText}>Cancel</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                              style={[styles.modalButton, styles.modalPrimaryButton]}
+                              onPress={handleSaveEdit}
+                              disabled={savingName}
+                            >
+                              {savingName ? (
+                                <ActivityIndicator color="#fff" />
+                              ) : (
+                                <Text style={[styles.modalButtonText, { color: "#fff" }]}>OK</Text>
+                              )}
+                            </TouchableOpacity>
+                          </View>
             </View>
           </TouchableOpacity>
         </TouchableOpacity>
@@ -291,8 +287,9 @@ export default ProjectDetailScreen;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 16,
+    padding: 18,
     marginTop: 2,
+    backgroundColor: '#f6f8fa',
   },
   empty: {
     marginTop: 20,
@@ -305,7 +302,7 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-start',
     alignItems: 'flex-end',
     paddingTop: 48,
-    paddingRight: 18,
+    paddingRight: 2,
   },
   menuBox: {
     backgroundColor: '#fff',
@@ -426,6 +423,29 @@ const styles = StyleSheet.create({
   editValue: {
     fontSize: 15,
     color: '#888',
+  },
+  modalButtonRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+  },
+  modalButton: {
+    flex: 1,
+    padding: 12,
+    borderRadius: 8,
+    alignItems: "center",
+    marginHorizontal: 6,
+    borderWidth: 1,
+    borderColor: "#ddd",
+    backgroundColor: "#fff",
+  },
+  modalPrimaryButton: {
+    backgroundColor: "#007AFF",
+    borderColor: "#007AFF",
+  },
+  modalButtonText: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#444",
   },
   colorRow: {
     flexDirection: 'row',

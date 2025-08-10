@@ -137,6 +137,10 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     position: 'relative',
   },
+  completedCard: {
+    backgroundColor: '#f9f9f9',
+    elevation: 0,
+  },
   circle: {
     marginRight: 14,
     marginTop: 2,
