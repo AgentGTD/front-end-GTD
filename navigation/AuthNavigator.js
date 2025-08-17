@@ -22,7 +22,7 @@ const AuthStack = () => {
       <Stack.Screen name="Entry" component={EntryScreen} />
       <Stack.Screen name="Register" component={RegisterScreen} />
       <Stack.Screen name="Login" component={LoginScreen} />
-      <Stack.Screen name="EmailVerify" component={EmailVerificationScreen} />
+      <Stack.Screen name="EmailVerification" component={EmailVerificationScreen} />
       <Stack.Screen name="ProfileSetup" component={ProfileSetupScreen} />
       <Stack.Screen name="ResetPassword" component={PasswordResetScreen} />
     </Stack.Navigator>

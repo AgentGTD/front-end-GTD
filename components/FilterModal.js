@@ -35,6 +35,7 @@ const FilterModal = ({
     ...contextList.map(name => ({ id: `context-${name}`, name, type: 'context' }))
   ];
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (searchQuery) {
       const query = searchQuery.toLowerCase();

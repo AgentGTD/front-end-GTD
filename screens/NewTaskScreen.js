@@ -7,7 +7,7 @@ import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 const PRIORITY_COLORS = ['#e53935', '#fb8c00', '#1976d2', '#43a047', '#757575'];
 
 const AddTaskModal = ({ visible, onClose, defaultProjectId, defaultCategory, defaultNextActionId }) => {
-  const { addTask } = useTaskContext(); 
+  const { addTask } = useTaskContext();
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [priority, setPriority] = useState(3);
@@ -40,10 +40,18 @@ const AddTaskModal = ({ visible, onClose, defaultProjectId, defaultCategory, def
     }
   };
 
-  const handleAdd = async () => {
+  const resetForm = () => {
+    setTitle('');
+    setDescription('');
+    setPriority(3);
+    setDueDate(new Date());
+  };
+
+  const handleAdd = () => {
     if (!title.trim()) return;
 
-    await addTask(
+    // Fire-and-close: optimistic add ensures the list updates instantly.
+    addTask(
       title,
       description,
       dueDate.toISOString(),
@@ -54,10 +62,7 @@ const AddTaskModal = ({ visible, onClose, defaultProjectId, defaultCategory, def
     );
 
     onClose();
-    setTitle('');
-    setDescription('');
-    setPriority(3);
-    setDueDate(new Date());
+    resetForm();
   };
 
   const renderPriorityModal = () => (
@@ -103,14 +108,14 @@ const AddTaskModal = ({ visible, onClose, defaultProjectId, defaultCategory, def
       onSwipeComplete={onClose}
       statusBarTranslucent
     >
-      <TouchableWithoutFeedback onPress={()=> {
+      <TouchableWithoutFeedback onPress={() => {
         setShowPriorityModal(false);
         setShowPicker(false);
         onClose();
       }}>
         <View style={styles.modalOverlay}>
           <TouchableWithoutFeedback>
-            <KeyboardAvoidingView 
+            <KeyboardAvoidingView
               behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
               style={styles.keyboardView}
             >
@@ -130,7 +135,7 @@ const AddTaskModal = ({ visible, onClose, defaultProjectId, defaultCategory, def
                     placeholderTextColor="#999"
                     autoFocus
                   />
-                  
+
                   <TextInput
                     style={styles.descriptionInput}
                     placeholder="Description"

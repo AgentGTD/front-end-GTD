@@ -30,7 +30,7 @@ export default function RegisterScreen() {
     try {
       const userCred = await createUserWithEmailAndPassword(auth, email.trim(), password);
       await sendEmailVerification(userCred.user);
-      navigation.navigate("EmailVerify");
+      navigation.navigate("EmailVerification");
     } catch (error) {
       Alert.alert("Registration failed", error.message);
     } finally {

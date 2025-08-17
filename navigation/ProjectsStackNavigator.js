@@ -17,7 +17,15 @@ export default function ProjectsStack() {
       <Stack.Screen
         name="ProjectDetail"
         component={ProjectDetailScreen}
-        options={({ route }) => ({  title: route.params.projectName || 'Project Details', headerShown: true, headerBackgroundColor: '#f6f8fa', headerTransparent: true })} 
+        options={({ route }) => ({  title: route.params.projectName || 'Project Details', headerShown: true, headerBackgroundColor: '#f6f8fa', headerTransparent: false, 
+           headerStyle: {
+            backgroundColor: '#f6f8fa',
+            shadowColor: 'transparent',
+            elevation: 0,
+            borderBottomWidth: 0.5,
+            borderBottomColor: '#ccc',
+    
+        },  })} 
         
 
       />

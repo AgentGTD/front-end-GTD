@@ -9,8 +9,12 @@ const PRIORITY_COLORS = ['#e53935', '#fb8c00', '#1976d2', '#43a047', '#757575'];
 
 const TaskDetailModal = ({ visible, task, onClose, moveTo, onComplete }) => {
   const { state, updateTask, addProject, addContext, toggleComplete } = useTaskContext();
-  const [editableTask, setEditableTask] = useState(task);
-  const [showDatePicker, setShowDatePicker] = useState(false);
+
+  // Always start with a safe object to avoid undefined reads
+  const [editableTask, setEditableTask] = useState(task || {});
+  // Split date pickers so they don't interfere with each other
+  const [showMainDatePicker, setShowMainDatePicker] = useState(false);
+  const [showEditDatePicker, setShowEditDatePicker] = useState(false);
 
   // Which sub-modal is open: 'priority', 'project', 'context', 'edit'
   const [modalType, setModalType] = useState(null);
@@ -22,11 +26,18 @@ const TaskDetailModal = ({ visible, task, onClose, moveTo, onComplete }) => {
   const [newContextName, setNewContextName] = useState('');
 
   useEffect(() => {
-    if (visible) setEditableTask(task);
+    if (visible) {
+      setEditableTask(task || {});
+      // Close any stray pickers whenever modal opens fresh
+      setShowMainDatePicker(false);
+      setShowEditDatePicker(false);
+      setModalType(null);
+    }
   }, [task, visible]);
 
   // --- Handlers ---
   const handleSave = () => {
+    // Optimistic handled in context now
     updateTask(editableTask);
     onClose();
   };
@@ -34,7 +45,6 @@ const TaskDetailModal = ({ visible, task, onClose, moveTo, onComplete }) => {
   const handleMoveToProject = async () => {
     if (newProjectName.trim()) {
       const projectName = newProjectName.trim();
-      // Await the project creation and get the new project object
       const newProject = await addProject(projectName);
       if (newProject && newProject.id) {
         await moveTo(editableTask.id, 'project', { projectId: newProject.id });
@@ -48,11 +58,11 @@ const TaskDetailModal = ({ visible, task, onClose, moveTo, onComplete }) => {
     }
     setModalType(null);
   };
+
   const handleMoveToNext = async () => {
     const contextToAssign = newContextName.trim() || selectedContext;
     if (contextToAssign) {
       if (newContextName.trim()) {
-        // Await the context creation and get the new context object
         const newContext = await addContext(newContextName.trim());
         if (newContext && newContext.id) {
           await moveTo(editableTask.id, 'next', { contextId: newContext.id });
@@ -78,10 +88,11 @@ const TaskDetailModal = ({ visible, task, onClose, moveTo, onComplete }) => {
     onClose();
   };
 
-  
   // data
   const projectList = Array.isArray(state.projects) ? state.projects : [];
-  const contextList = state.contexts.filter(c => c.context_name && c.context_name.trim() !== '');
+  const contextList = (Array.isArray(state.contexts) ? state.contexts : []).filter(
+    c => c.context_name && c.context_name.trim() !== ''
+  );
 
   // sub-modals
   const renderPriorityModal = () => (
@@ -126,7 +137,7 @@ const TaskDetailModal = ({ visible, task, onClose, moveTo, onComplete }) => {
               <Text style={styles.sheetTitle}>Move to Project</Text>
               <FlatList
                 data={projectList}
-                keyExtractor={item => item.id}
+                keyExtractor={item => String(item.id)}
                 renderItem={({ item }) => (
                   <TouchableOpacity
                     style={[
@@ -168,7 +179,7 @@ const TaskDetailModal = ({ visible, task, onClose, moveTo, onComplete }) => {
               <Text style={styles.sheetTitle}>Move to Next Action</Text>
               <FlatList
                 data={contextList}
-                keyExtractor={item => item.id}
+                keyExtractor={item => String(item.id)}
                 renderItem={({ item }) => (
                   <TouchableOpacity
                     style={[
@@ -208,45 +219,60 @@ const TaskDetailModal = ({ visible, task, onClose, moveTo, onComplete }) => {
           <TouchableWithoutFeedback>
             <View style={styles.bottomSheet}>
               <Text style={styles.sheetTitle}>Edit Task</Text>
+
+              {/* Title (always render, safe default) */}
               <TextInput
                 style={styles.titleInput}
-                value={editableTask.title}
+                value={editableTask?.title ?? ''}
+                placeholder="Task title"
                 onChangeText={(text) =>
                   setEditableTask({ ...editableTask, title: text })
                 }
               />
-             { editableTask.description ? (<TextInput
+
+              {/* Description (always render so users can add one) */}
+              <TextInput
                 style={styles.descInput}
-                value={editableTask.description}
+                value={editableTask?.description ?? ''}
+                placeholder="Description"
+                multiline
                 onChangeText={(text) =>
                   setEditableTask({ ...editableTask, description: text })
                 }
-              /> ) : null }
+              />
 
-              <TouchableOpacity style={{flexDirection: 'row', alignItems: 'center', marginLeft: 3, gap: 4}} onPress={() => setShowDatePicker(true)}>
-                      <Ionicons name="calendar-outline" size={21} color="#007BFF" style={{ marginRight: 6 }} />
-                      <Text style={styles.dueText}>
-                        {editableTask.dueDate
-                          ? new Date(editableTask.dueDate).toDateString()
-                          : 'No due date'}
-                      </Text>
-                    </TouchableOpacity>
-                    {showDatePicker && (
-                      <DateTimePicker
-                        value={editableTask.dueDate ? new Date(editableTask.dueDate) : new Date()}
-                        mode="date"
-                        display={Platform.OS === 'ios' ? 'inline' : 'default'}
-                        onChange={(e, selectedDate) => {
-                          setShowDatePicker(false);
-                          if (selectedDate) {
-                            setEditableTask({ ...editableTask, dueDate: selectedDate.toISOString() });
-                          }
-                        }}
-                      />
-                    )}
+              {/* Edit modal date picker - independent switch */}
+              <TouchableOpacity
+                style={{flexDirection: 'row', alignItems: 'center', marginLeft: 3, gap: 4}}
+                onPress={() => setShowEditDatePicker(true)}
+              >
+                <Ionicons name="calendar-outline" size={21} color="#007BFF" style={{ marginRight: 6 }} />
+                <Text style={styles.dueText}>
+                  {editableTask?.dueDate
+                    ? new Date(editableTask.dueDate).toDateString()
+                    : 'No due date'}
+                </Text>
+              </TouchableOpacity>
+
+              {showEditDatePicker && (
+                <DateTimePicker
+                  value={editableTask?.dueDate ? new Date(editableTask.dueDate) : new Date()}
+                  mode="date"
+                  display={Platform.OS === 'ios' ? 'inline' : 'default'}
+                  onChange={(e, selectedDate) => {
+                    // Android fires twice; guard on selectedDate presence
+                    if (Platform.OS !== 'ios') setShowEditDatePicker(false);
+                    if (selectedDate) {
+                      setEditableTask({ ...editableTask, dueDate: selectedDate.toISOString() });
+                    }
+                  }}
+                  onTouchCancel={() => setShowEditDatePicker(false)}
+                />
+              )}
+
               <TouchableOpacity
                 onPress={() => {
-                  updateTask(editableTask);
+                  updateTask(editableTask); // optimistic in context
                   setModalType(null);
                 }}
                 style={[styles.sheetActionBtn, { marginTop: 18 }]}
@@ -279,7 +305,7 @@ const TaskDetailModal = ({ visible, task, onClose, moveTo, onComplete }) => {
                       hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                       style={styles.circleBtn}
                     >
-                      {editableTask.completed ? (
+                      {editableTask?.completed ? (
                         <Ionicons name="checkmark-circle" size={28} color="#4caf50" />
                       ) : (
                         <Ionicons name="ellipse-outline" size={28} color="#757575" />
@@ -287,51 +313,54 @@ const TaskDetailModal = ({ visible, task, onClose, moveTo, onComplete }) => {
                     </TouchableOpacity>
                   </View>
 
-                  <Text style={styles.taskTitle}>{editableTask.title}</Text>
+                  <Text style={styles.taskTitle}>{editableTask?.title ?? ''}</Text>
                   </View>
                   
-                    
                   {/* Description Row */}
-                    {editableTask.description ? (
-                      <View style={{flexDirection: 'row', alignItems: 'center', marginLeft: 1}}>
-                        <Ionicons name="document-text-outline" size={24} color="#757575" style={{ marginRight: 6 }} />
-                        <Text style={styles.descText}>{editableTask.description}</Text>
-                      </View>
-                    ) : null}
+                  {(editableTask?.description ?? '') !== '' ? (
+                    <View style={{flexDirection: 'row', alignItems: 'center', marginLeft: 1}}>
+                      <Ionicons name="document-text-outline" size={24} color="#757575" style={{ marginRight: 6 }} />
+                      <Text style={styles.descText}>{editableTask.description}</Text>
+                    </View>
+                  ) : null}
 
-       {/* Calendar Row */}
-                    <TouchableOpacity style={{flexDirection: 'row', alignItems: 'center', marginLeft: 3, gap: 4}} onPress={() => setShowDatePicker(true)}>
-                      <Ionicons name="calendar-outline" size={21} color="#757575" style={{ marginRight: 6 }} />
-                      <Text style={styles.dueText}>
-                        {editableTask.dueDate
-                          ? new Date(editableTask.dueDate).toDateString()
-                          : 'No due date'}
-                      </Text>
-                    </TouchableOpacity>
-                    {showDatePicker  && !editableTask.completed && (
-                      <DateTimePicker
-                        value={editableTask.dueDate ? new Date(editableTask.dueDate) : new Date()}
-                        mode="date"
-                        display={Platform.OS === 'ios' ? 'inline' : 'default'}
-                        onChange={(e, selectedDate) => {
-                          setShowDatePicker(false);
-                          if (selectedDate) {
-                            setEditableTask({ ...editableTask, dueDate: selectedDate.toISOString() });
-                          }
-                        }}
-                      />
-                    )}
+                  {/* Calendar Row (main view uses its own picker switch) */}
+                  <TouchableOpacity
+                    style={{flexDirection: 'row', alignItems: 'center', marginLeft: 3, gap: 4}}
+                    onPress={() => setShowMainDatePicker(true)}
+                    disabled={!!editableTask?.completed}
+                  >
+                    <Ionicons name="calendar-outline" size={21} color="#757575" style={{ marginRight: 6 }} />
+                    <Text style={styles.dueText}>
+                      {editableTask?.dueDate
+                        ? new Date(editableTask.dueDate).toDateString()
+                        : 'No due date'}
+                    </Text>
+                  </TouchableOpacity>
+
+                  {showMainDatePicker && !editableTask?.completed && (
+                    <DateTimePicker
+                      value={editableTask?.dueDate ? new Date(editableTask.dueDate) : new Date()}
+                      mode="date"
+                      display={Platform.OS === 'ios' ? 'inline' : 'default'}
+                      onChange={(e, selectedDate) => {
+                        if (Platform.OS !== 'ios') setShowMainDatePicker(false);
+                        if (selectedDate) {
+                          setEditableTask({ ...editableTask, dueDate: selectedDate.toISOString() });
+                        }
+                      }}
+                      onTouchCancel={() => setShowMainDatePicker(false)}
+                    />
+                  )}
                  
                   {/* Meta Chips */}
                   <View style={{flexDirection: 'row', alignItems: 'center', gap: 4}}>
-
-                    
                     <View style={styles.metaChip}>
-                      <MaterialIcons name="flag" size={14} color={PRIORITY_COLORS[(editableTask.priority || 1) - 1]} />
-                      <Text style={styles.metaChipText}>P{editableTask.priority || 1}</Text>
+                      <MaterialIcons name="flag" size={14} color={PRIORITY_COLORS[(editableTask?.priority || 1) - 1]} />
+                      <Text style={styles.metaChipText}>P{editableTask?.priority || 1}</Text>
                     </View>
 
-                    {editableTask.projectId ? (
+                    {editableTask?.projectId ? (
                       <View style={styles.metaChip}>
                         <Ionicons name="folder" size={14} color="#1976d2" />
                         <Text style={styles.metaChipText}>
@@ -340,7 +369,7 @@ const TaskDetailModal = ({ visible, task, onClose, moveTo, onComplete }) => {
                       </View>
                     ) : null}
 
-                    {editableTask.nextActionId ? (
+                    {editableTask?.nextActionId ? (
                       <View style={styles.metaChip}>
                         <Ionicons name="at-outline" size={16} color="#43a047" />
                         <Text style={styles.metaChipText}>
@@ -348,14 +377,12 @@ const TaskDetailModal = ({ visible, task, onClose, moveTo, onComplete }) => {
                         </Text>
                       </View>
                     ) : null}
-
                   </View>
-
                  
                 </View>
 
-
-               {editableTask.completed ? null : (<View style={{ marginVertical: 2 }}>
+               {editableTask?.completed ? null : (
+                <View style={{ marginVertical: 2 }}>
                   <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                     <View style={styles.pillRow}>
                       <TouchableOpacity style={styles.pillBtn} onPress={() => setModalType('priority')}>
@@ -377,33 +404,27 @@ const TaskDetailModal = ({ visible, task, onClose, moveTo, onComplete }) => {
                     </View>
                   </ScrollView>
                 </View>
-  )}
+               )}
 
                 {/* Save/Cancel */}
-                {editableTask.completed ?  (
+                {editableTask?.completed ?  (
                   <View  style={styles.placeSaveBtn}>
-                  <Text style={{ color: '#fff', fontWeight: 'bold' }}>Save</Text>
-                </View>
+                    <Text style={{ color: '#fff', fontWeight: 'bold' }}>Save</Text>
+                  </View>
                 ) : (
                   <TouchableOpacity onPress={handleSave} style={styles.saveBtn}>
-                  <Text style={{ color: '#fff', fontWeight: 'bold' }}>Save</Text>
-                </TouchableOpacity>
+                    <Text style={{ color: '#fff', fontWeight: 'bold' }}>Save</Text>
+                  </TouchableOpacity>
                 )}
-                
-                {/* 
-                <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
-                  <Text style={{ color: '#f44336', fontWeight: 'bold' }}>Cancel</Text>
-                </TouchableOpacity>
-                */}
               </View>
             </TouchableWithoutFeedback>
           </View>
         </TouchableWithoutFeedback>
+
         {renderPriorityModal()}
         {renderProjectModal()}
         {renderContextModal()}
         {renderEditModal()}
-    
       </Modal>
   );
 };
@@ -530,7 +551,6 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     alignItems: 'center',
   },
-  
 
   bottomSheetOverlay: {
     flex: 1,
@@ -606,25 +626,21 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   titleInput: {
+    color: '#333',
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#333',
     marginBottom: 16,
     borderBottomWidth: 1,
     borderColor: '#ccc',
     paddingBottom: 4,
-    flex: 1,
-    flexWrap: 'nowrap',
   },
   descInput: {
-    fontSize: 18,
+    fontSize: 16,
     color: '#333',
     marginBottom: 16,
     borderBottomWidth: 1,
     borderColor: '#ccc',
     paddingBottom: 4,
-    flex: 1,
-    flexWrap: 'wrap',
   },
   circleCol: {
     alignItems: 'flex-start',

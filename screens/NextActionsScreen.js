@@ -10,7 +10,7 @@ import { useSnackbar } from '../context/SnackBarContext';
 
 
 const NextActionScreen = ({ navigation }) => {
-  const { state, deleteContext, toggleComplete, moveTo } = useTaskContext();
+  const { state, stateRef, deleteContext, toggleComplete, moveTo } = useTaskContext();
   const { openChatBot } = useChatBot();
   const { showSnackbar } = useSnackbar();
 
@@ -70,22 +70,22 @@ const NextActionScreen = ({ navigation }) => {
  
 
 // Handler for completing a task
-   const handleComplete = (task) => {
-    toggleComplete(task.id);
-    setLastCompletedTask(task);
-    showSnackbar(
-      `${task.title} completed!`,
-      () => handleUndo(), // Undo action
-      'Undo'
-    );
-  };
+  const handleComplete = (task) => {
+  toggleComplete(task.id);
 
-  // Handler for undo
-  const handleUndo = () => {
-    if (lastCompletedTask) {
-      toggleComplete(lastCompletedTask.id); 
-    }
-  };
+  showSnackbar(
+    `${task.title} completed!`,
+    () => {
+      const currentTask = stateRef.current.tasks.find(t => t.id === task.id);
+      if (currentTask?.completed) {
+        toggleComplete(task.id);
+      }
+    },
+    'Undo'
+  );
+}
+
+
   const handleMoveTo = (id, category, payload) => {
     moveTo(id, category, payload);
     setDetailModalVisible(false);

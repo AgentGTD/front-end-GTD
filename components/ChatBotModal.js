@@ -6,9 +6,7 @@ import Markdown from 'react-native-markdown-display';
 import { useTaskContext } from '../context/TaskContext';
 import { AuthContext } from '../context/AuthContext';
 
-
-
-const ChatBotModal = ({visible, onClose }) => {
+const ChatBotModal = ({ visible, onClose }) => {
   const { refreshAll } = useTaskContext();
   const { getCurrentToken } = useContext(AuthContext);
   const [messages, setMessages] = useState([]);
@@ -23,16 +21,22 @@ const ChatBotModal = ({visible, onClose }) => {
   const slideAnim = useRef(new Animated.Value(0)).current;
 
   const [firebaseToken, setFirebaseToken] = useState(null);
+  const [rateLimited, setRateLimited] = useState(false);
 
   useEffect(() => {
     const fetchFirebaseToken = async () => {
-      const token = await getCurrentToken();
-      setFirebaseToken(token);
+      try {
+        const token = await getCurrentToken();
+        setFirebaseToken(token);
+      } catch (error) {
+        console.error("Failed to get token:", error);
+      }
     };
-    fetchFirebaseToken();
-  }, [getCurrentToken]);
-
-
+    
+    if (visible) {
+      fetchFirebaseToken();
+    }
+  }, [getCurrentToken, visible]);
 
   // Smooth slide animation
   useEffect(() => {
@@ -70,14 +74,41 @@ const ChatBotModal = ({visible, onClose }) => {
       setMessages([
         { 
           role: 'welcome', 
-          content: "👋 Hi! I'm Atom. Your Personal Productivity Assistant. How can I help you today?" 
+          content: "👋 Hi! I'm Atom, your personal productivity assistant. I can help you with tasks, projects, and staying organized. What can I do for you today?" 
         }
       ]);
     }
   }, [visible, hasUserInteracted]);
 
+  // Check for restricted commands
+  const containsRestrictedKeywords = (text) => {
+    const restricted = [
+      'delete', 'remove', 'destroy', 'erase', 'drop', 
+      'truncate', 'wipe', 'clear', 'purge', 'reset',
+      'shutdown', 'grant', 'revoke'
+    ];
+    
+    return restricted.some(keyword => 
+      new RegExp(`\\b${keyword}\\b`, 'i').test(text)
+    );
+  };
+
   const handleSend = async () => {
     if (!input.trim() || isLoading) return;
+    
+    // Check for restricted commands
+    if (containsRestrictedKeywords(input)) {
+      setMessages((prev) => [
+        ...prev,
+        { role: 'user', content: input },
+        { 
+          role: 'assistant', 
+          content: "I can't perform destructive actions like deleting data. For safety reasons, I'm limited to productivity tasks like creating and managing tasks, projects, and contexts (Instead you can do it manually)." 
+        }
+      ]);
+      setInput('');
+      return;
+    }
     
     const userMessage = { role: 'user', content: input };
     setMessages((prev) => [...prev, userMessage]);
@@ -96,9 +127,21 @@ const ChatBotModal = ({visible, onClose }) => {
     abortControllerRef.current = new AbortController();
 
     try {
-      const data = await sendAIPrompt(firebaseToken, userMessage.content, abortControllerRef.current.signal);
-      const assistantReply = data.message || data.result || "Sorry, I didn't understand that.";
-
+      const data = await sendAIPrompt(
+        firebaseToken, 
+        userMessage.content, 
+        abortControllerRef.current.signal
+      );
+      
+      let assistantReply = data.message || "Sorry, I didn't understand that.";
+      
+      // Handle backend security flags
+      if (data.intent === 'error' || data.safe === false) {
+        assistantReply = "I can't help with that request. For security reasons, I'm limited to productivity-related tasks.";
+      }
+      
+      // Populate with actual response
+      
       // Typing animation
       let i = 0;
       let animatedText = '';
@@ -115,19 +158,34 @@ const ChatBotModal = ({visible, onClose }) => {
           setIsLoading(false);
         }
       }, 1);
-
+      
       // After successful backend creation, refresh frontend data
       refreshAll();
     } catch (err) {
+      let errorMessage = "Something went wrong. Please try again.";
+      
       if (err.name === 'AbortError') {
         console.log('Request cancelled');
-      } else {
-        console.error(err);
-        setMessages((prev) => [
-          ...prev.slice(0, -1),
-          { role: 'assistant', content: 'Something went wrong.' }
-        ]);
+        return;
+      } 
+      
+      // Handle rate limiting
+      if (err.message?.includes('Too many requests') || err.response?.status === 429) {
+        errorMessage = "I'm getting too many requests. Please wait a moment and try again.";
+        setRateLimited(true);
+        setTimeout(() => setRateLimited(false), 60000); // 1 minute cooldown
       }
+      // Handle authorization errors
+      else if (err.response?.status === 401 || err.response?.status === 403) {
+        errorMessage = "I can't perform that action. You might need to sign in again.";
+      }
+      
+      // Replace typing indicator with error message
+      setMessages((prev) => [
+        ...prev.slice(0, -1),
+        { role: 'assistant', content: errorMessage }
+      ]);
+    } finally {
       setIsLoading(false);
     }
   };
@@ -146,6 +204,16 @@ const ChatBotModal = ({visible, onClose }) => {
       ToastAndroid.show('Copied!', ToastAndroid.SHORT);
     }
   };
+
+  // Security notice for new users
+  const SecurityNotice = () => (
+    <View style={styles.securityNotice}>
+      <Ionicons name="shield-checkmark" size={16} color="#4CAF50" />
+      <Text style={styles.securityText}>
+        For your security, I can&apos;t perform destructive actions
+      </Text>
+    </View>
+  );
 
   return (
     <Modal
@@ -178,12 +246,16 @@ const ChatBotModal = ({visible, onClose }) => {
               </View>
               <View>
                 <Text style={styles.headerTitle}>ATOM</Text>
+                <Text style={styles.headerSubtitle}>Productivity Assistant</Text>
               </View>
             </View>
             <TouchableOpacity onPress={onClose} style={styles.closeButton}>
               <Ionicons name="close" size={24} color="#666" />
             </TouchableOpacity>
           </View>
+
+          {/* Security notice for new conversations */}
+          {!hasUserInteracted && <SecurityNotice />}
 
           {/* Chat Area */}
           <ScrollView
@@ -205,8 +277,15 @@ const ChatBotModal = ({visible, onClose }) => {
                 {msg.role === 'welcome' ? (
                   <View style={styles.welcomeMessage}>
                     <View style={styles.welcomeContent}>
-                      <Text style={styles.welcomeTitle}>👋 Hi! I am Atom</Text>
-                      <Text style={styles.welcomeSubtitle}>Your Personal Productivity Assistant. How can I help you today?</Text>
+                      <Text style={styles.welcomeTitle}>👋 Hi! I&apos;m Atom</Text>
+                      <Text style={styles.welcomeSubtitle}>
+                        Your personal productivity assistant. I can help you with:
+                        {"\n\n"}- Creating tasks and projects
+                        {"\n"}- Managing tasks and projects
+                        {"\n"}- Organizing by contexts
+                        {"\n"}- Planning your day
+                        {"\n\n"}What can I do for you today?
+                      </Text>
                     </View>
                   </View>
                 ) : msg.role === 'user' ? (
@@ -265,28 +344,35 @@ const ChatBotModal = ({visible, onClose }) => {
                 onChangeText={setInput}
                 multiline
                 onContentSizeChange={(e) => setInputHeight(e.nativeEvent.contentSize.height)}
-                placeholder="Ask Atom anything"
+                placeholder="Ask Atom anything about productivity..."
                 placeholderTextColor="#888"
                 style={[styles.input, { height: Math.max(40, Math.min(inputHeight, 120)) }]}
-                editable={!isLoading}
-                onSubmitEditing={handleSend}
+                editable={!isLoading && !rateLimited}
+                onSubmitEditing={rateLimited ? undefined : handleSend}
                 returnKeyType="send"
               />
               <TouchableOpacity
-                onPress={isLoading ? handleCancel : handleSend}
+                onPress={isLoading ? handleCancel : (rateLimited ? undefined : handleSend)}
                 style={[
                   styles.sendButton,
-                  input.trim() && !isLoading ? styles.sendButtonActive : styles.sendButtonInactive
+                  input.trim() && !isLoading && !rateLimited ? styles.sendButtonActive : styles.sendButtonInactive
                 ]}
-                disabled={!input.trim() && !isLoading}
+                disabled={(!input.trim() && !isLoading) || rateLimited}
               >
                 {isLoading ? (
                   <Ionicons name="stop" size={20} color="#fff" />
+                ) : rateLimited ? (
+                  <Ionicons name="time-outline" size={20} color="#fff" />
                 ) : (
                   <Ionicons name="send" size={20} color="#fff" />
                 )}
               </TouchableOpacity>
             </View>
+            {rateLimited && (
+              <Text style={styles.rateLimitText}>
+                Too many requests. Please wait a moment...
+              </Text>
+            )}
           </KeyboardAvoidingView>
         </View>
       </Animated.View>
@@ -332,11 +418,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginRight: 12,
   },
-  avatarText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
   headerTitle: {
     color: '#222',
     fontSize: 18,
@@ -344,16 +425,31 @@ const styles = StyleSheet.create({
   },
   headerSubtitle: {
     color: '#666',
-    fontSize: 13,
+    fontSize: 12,
     marginTop: 2,
   },
   closeButton: {
     padding: 8,
   },
+  securityNotice: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#E8F5E9',
+    padding: 10,
+    paddingHorizontal: 15,
+    marginHorizontal: 15,
+    borderRadius: 10,
+    marginTop: 5,
+  },
+  securityText: {
+    color: '#4CAF50',
+    fontSize: 12,
+    marginLeft: 8,
+  },
   chatArea: {
     flex: 1,
     paddingHorizontal: 20,
-    paddingTop: 20,
+    paddingTop: 15,
     backgroundColor: '#fff',
   },
   messageContainer: {
@@ -376,20 +472,6 @@ const styles = StyleSheet.create({
     padding: 20,
     borderRadius: 16,
     maxWidth: '90%',
-  },
-  welcomeAvatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#007AFF',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 12,
-  },
-  welcomeAvatarText: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: 'bold',
   },
   welcomeContent: {
     flex: 1,
@@ -420,7 +502,7 @@ const styles = StyleSheet.create({
   },
   assistantMessage: {
     flexDirection: 'row',
-    maxWidth: '85%',
+    maxWidth: '95%',
   },
   assistantAvatar: {
     width: 32,
@@ -478,7 +560,6 @@ const styles = StyleSheet.create({
     paddingRight: 8,
     paddingLeft: 16,
     paddingVertical: 8,
-    marginBottom: 12,
   },
   input: {
     flex: 1,
@@ -501,6 +582,12 @@ const styles = StyleSheet.create({
   },
   sendButtonInactive: {
     backgroundColor: '#d1d5db',
+  },
+  rateLimitText: {
+    color: '#F44336',
+    fontSize: 12,
+    textAlign: 'center',
+    marginTop: 6,
   },
 });
 

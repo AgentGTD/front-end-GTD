@@ -246,7 +246,7 @@ subtitle: { fontSize: 13, marginBottom: 25, color: "#555", textAlign: "center" }
   },
   input: {
     height: 54,
-    borderColor: "#ddd",
+    borderColor: "#aaa",
     borderWidth: 2,
     borderRadius: 12,
     paddingHorizontal: 16,

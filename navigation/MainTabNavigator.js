@@ -35,7 +35,8 @@ export default function MainTabNavigator() {
             textOverflow: 'ellipsis',
             
           },
-          
+          tabBarButton: (props) => <TouchableOpacity {...props} activeOpacity={0.7} />,
+      
           tabBarIcon: ({ color, focused }) => {
             let iconName;
             if (route.name === 'Today') iconName = focused ? 'calendar' : 'calendar-outline';
@@ -51,7 +52,7 @@ export default function MainTabNavigator() {
           },
         })}
       >
-        <Tab.Screen name="Today" component={TodayScreen} />
+        <Tab.Screen name="Today" component={TodayScreen}  />
         <Tab.Screen name="Inbox" component={InboxScreen} />
         <Tab.Screen
           name="AddTaskCenter"

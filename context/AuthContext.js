@@ -4,52 +4,46 @@ import { auth, db } from "../utils/firebase";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import { doc, getDoc, setDoc } from "firebase/firestore";
+import NetInfo from "@react-native-community/netinfo";
 import { CLOUDINARY_CLOUD_NAME, CLOUDINARY_UPLOAD_PRESET } from "@env";
 
+// Cloudinary URL
 const CLOUDINARY_API_URL = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`;
 
 export const AuthContext = createContext();
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null); // Firebase Auth user object
-  const [profile, setProfile] = useState(null); // Firestore user profile doc (if any)
+  const [user, setUser] = useState(null);
+  const [profile, setProfile] = useState(null);
   const [initializing, setInitializing] = useState(true);
   const [firebaseToken, setFirebaseToken] = useState(null);
 
-  // Debug logging for state changes
-  useEffect(() => {
-    console.log("🔐 AuthContext State Debug:");
-    console.log(
-      "  - user:",
-      user
-        ? {
-            uid: user.uid,
-            email: user.email,
-            emailVerified: user.emailVerified,
-            displayName: user.displayName,
-          }
-        : "null"
-    );
-    console.log("  - profile:", profile);
-    console.log("  - initializing:", initializing);
-    console.log("  - firebaseToken exists:", !!firebaseToken);
-  }, [user, profile, initializing, firebaseToken]);
+  // Loader + internet state
+  const [loading, setLoading] = useState(false);
+  const [isConnected, setIsConnected] = useState(true);
 
-  // Get fresh Firebase ID token and persist it locally
+  // Monitor internet connection
+  useEffect(() => {
+    const unsubscribeNetInfo = NetInfo.addEventListener((state) => {
+      setIsConnected(state.isConnected);
+    });
+    return () => unsubscribeNetInfo();
+  }, []);
+
+  // Debug logs
+  useEffect(() => {
+    console.log("🔐 AuthContext State Debug:", { user, profile, initializing, firebaseTokenExists: !!firebaseToken, loading, isConnected });
+  }, [user, profile, initializing, firebaseToken, loading, isConnected]);
+
+  // Fetch Firebase token
   const getFirebaseToken = async (u) => {
-    console.log("🔑 getFirebaseToken called with user:", u ? u.email : "null");
     try {
       if (u) {
-        console.log("🔄 Getting fresh Firebase token...");
-        const token = await u.getIdToken(true); // force refresh
-        console.log("✅ Firebase token obtained, length:", token ? token.length : 0);
-
+        const token = await u.getIdToken(true);
         await AsyncStorage.setItem("firebaseToken", token);
         setFirebaseToken(token);
-        console.log("💾 Token saved to AsyncStorage");
         return token;
       } else {
-        console.log("🧹 Clearing Firebase token (no user)");
         await AsyncStorage.removeItem("firebaseToken");
         setFirebaseToken(null);
         return null;
@@ -60,59 +54,30 @@ export function AuthProvider({ children }) {
     }
   };
 
-  // Helper: fetch Firestore profile for a uid
+  // Fetch Firestore profile
   const fetchProfile = async (uid) => {
     try {
       const docRef = doc(db, "users", uid);
       const snap = await getDoc(docRef);
-      if (snap.exists()) {
-        return snap.data();
-      } else {
-        return null;
-      }
+      return snap.exists() ? snap.data() : null;
     } catch (error) {
       console.error("❌ Error fetching profile from Firestore:", error);
       return null;
     }
   };
 
+  // Auth listener
   useEffect(() => {
-    console.log("🚀 AuthContext useEffect - setting up auth state listener");
-
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      setLoading(true);
       try {
-        console.log("🔄 Auth state changed:");
-        console.log(
-          "  - New user:",
-          firebaseUser
-            ? {
-                uid: firebaseUser.uid,
-                email: firebaseUser.email,
-                emailVerified: firebaseUser.emailVerified,
-              }
-            : "null"
-        );
-
         if (firebaseUser) {
-          // Refresh user to get latest emailVerified status
-          try {
-            await firebaseUser.reload();
-            console.log("🔁 user.reload() called to refresh emailVerified");
-          } catch (reloadErr) {
-            console.warn("⚠️ user.reload() failed:", reloadErr.message || reloadErr);
-          }
-
+          await firebaseUser.reload();
           setUser(firebaseUser);
-
-          // Get fresh token
           await getFirebaseToken(firebaseUser);
-
-          // Fetch user profile from Firestore (if exists)
           const userProfile = await fetchProfile(firebaseUser.uid);
           setProfile(userProfile);
-          console.log("✅ Profile loaded:", userProfile);
         } else {
-          // signed out
           setUser(null);
           setProfile(null);
           await AsyncStorage.removeItem("firebaseToken");
@@ -121,22 +86,20 @@ export function AuthProvider({ children }) {
       } catch (err) {
         console.error("❌ Error in auth state handler:", err);
       } finally {
-        console.log("✅ Setting initializing to false");
         setInitializing(false);
+        setLoading(false);
       }
     });
 
-    return () => {
-      console.log("🧹 Cleaning up auth state listener");
-      unsubscribe();
-    };
+    return () => unsubscribe();
   }, []);
 
-  // Mark profile complete (and optionally save fields). merges fields
+  // Mark profile complete
   const completeProfile = async (profileFields = {}) => {
-    if (!user?.uid) {
-      throw new Error("No authenticated user to complete profile for");
-    }
+    if (!isConnected) throw new Error("No internet connection");
+    if (!user?.uid) throw new Error("No authenticated user");
+
+    setLoading(true);
     try {
       const docRef = doc(db, "users", user.uid);
       const payload = {
@@ -144,87 +107,92 @@ export function AuthProvider({ children }) {
         profileComplete: true,
         updatedAt: new Date().toISOString(),
       };
-      // merge: if you want to merge rather than overwrite, use setDoc with merge option
       await setDoc(docRef, payload, { merge: true });
       setProfile((prev) => ({ ...(prev || {}), ...payload }));
-      console.log("✅ Profile marked complete in Firestore for uid:", user.uid);
-    } catch (error) {
-      console.error("❌ Error completing profile:", error);
-      throw error;
+    } finally {
+      setLoading(false);
     }
   };
 
+  // Cloudinary upload
   const uploadImageToCloudinary = async (imageUri) => {
+    if (!isConnected) throw new Error("No internet connection");
+
+    setLoading(true);
     try {
       const formData = new FormData();
-      formData.append("file", {
-        uri: imageUri,
-        type: "image/jpeg",
-        name: "upload.jpg"
-      });
+      formData.append("file", { uri: imageUri, type: "image/jpeg", name: "upload.jpg" });
       formData.append("upload_preset", CLOUDINARY_UPLOAD_PRESET);
 
-      const response = await fetch(CLOUDINARY_API_URL, {
-        method: "POST",
-        body: formData
-      });
-
+      const response = await fetch(CLOUDINARY_API_URL, { method: "POST", body: formData });
       const data = await response.json();
+
       if (data.secure_url) {
-        console.log("✅ Image uploaded to Cloudinary:", data.secure_url);
         return data.secure_url;
       } else {
-        console.error("❌ Cloudinary upload failed:", data);
-        return null;
+        throw new Error("Cloudinary upload failed");
       }
     } catch (error) {
       console.error("❌ Error uploading to Cloudinary:", error);
       return null;
+    } finally {
+      setLoading(false);
     }
   };
 
+  // Logout
   const logout = async () => {
-    console.log("🚪 Logout initiated");
+    if (!isConnected) throw new Error("No internet connection");
+
+    setLoading(true);
     try {
       await signOut(auth);
       setUser(null);
       setProfile(null);
       setFirebaseToken(null);
       await AsyncStorage.removeItem("firebaseToken");
-      console.log("✅ Logout successful");
-    } catch (error) {
-      console.error("❌ Error signing out:", error);
+    } finally {
+      setLoading(false);
     }
   };
 
-  // Function to get current Firebase token (for API calls)
+  // Get current Firebase token
   const getCurrentToken = async () => {
-  try {
-    // Return token directly if we already have it
     if (firebaseToken) return firebaseToken;
-    
+
     const token = await AsyncStorage.getItem("firebaseToken");
     if (token) {
       setFirebaseToken(token);
       return token;
     }
-    
-    // Fetch new token if needed
-    const currentUser = auth.currentUser;
-    if (currentUser) {
-      const newToken = await currentUser.getIdToken(true);
+
+    if (auth.currentUser) {
+      const newToken = await auth.currentUser.getIdToken(true);
       await AsyncStorage.setItem("firebaseToken", newToken);
       setFirebaseToken(newToken);
       return newToken;
     }
-    
+
+    return null;
+  };
+
+const reloadUser = async () => {
+  try {
+    const user = auth.currentUser;
+    if (user) {
+      await user.reload();
+      const updatedUser = auth.currentUser;
+      setUser(updatedUser); 
+      return updatedUser;
+    }
     return null;
   } catch (error) {
-    console.error("❌ Error getting current token:", error);
+    console.error("Error reloading user:", error);
     return null;
   }
-};
 
+  
+};
   return (
     <AuthContext.Provider
       value={{
@@ -238,6 +206,10 @@ export function AuthProvider({ children }) {
         getCurrentToken,
         completeProfile,
         uploadImageToCloudinary,
+        loading,
+        setLoading,
+        isConnected,
+        reloadUser
       }}
     >
       {children}

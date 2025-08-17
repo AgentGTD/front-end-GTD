@@ -15,7 +15,7 @@ const ProjectDetailScreen = () => {
   const { params } = useRoute();
   const { projectId, projectName } = params;
 
-  const { state, toggleComplete, getTasksByProject, deleteProject, updateProject, moveTo } = useTaskContext();
+  const { state, stateRef, toggleComplete, getTasksByProject, deleteProject, updateProject, moveTo } = useTaskContext();
   const { openChatBot } = useChatBot();
   const { showSnackbar } = useSnackbar();
 
@@ -65,21 +65,20 @@ const ProjectDetailScreen = () => {
 
  // Handler for completing a task
    const handleComplete = (task) => {
-    toggleComplete(task.id);
-    setLastCompletedTask(task);
-    showSnackbar(
-      `${task.title} completed!`,
-      () => handleUndo(), // Undo action
-      'Undo'
-    );
-  };
+  toggleComplete(task.id);
 
-  // Handler for undo
-  const handleUndo = () => {
-    if (lastCompletedTask) {
-      toggleComplete(lastCompletedTask.id); 
-    }
-  };
+  showSnackbar(
+    `${task.title} completed!`,
+    () => {
+      const currentTask = stateRef.current.tasks.find(t => t.id === task.id);
+      if (currentTask?.completed) {
+        toggleComplete(task.id);
+      }
+    },
+    'Undo'
+  );
+}
+
 
   const handleOnPressItem = (item) => {
     setSelectedTask(item);
@@ -288,7 +287,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 18,
-    marginTop: 2,
     backgroundColor: '#f6f8fa',
   },
   empty: {

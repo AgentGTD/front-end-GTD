@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState } from 'react';
 import { View, Text, FlatList, StyleSheet, Image, TouchableOpacity } from 'react-native';
 import { useSnackbar } from '../context/SnackBarContext'; 
 import { useTaskContext } from '../context/TaskContext';
@@ -8,20 +8,16 @@ import { useChatBot } from '../context/ChatBotContext';
 import { isToday, isBefore } from '../utils/dateUtils';
 import TaskDetailModal from '../components/TaskDetailModal';
 import MenuComponent from '../components/MenuComponent';
-
+import SkeletonTask from '../components/Loaders/SkeletonTask';
 
 const TodayScreen = () => {
-  const { state, toggleComplete, moveTo } = useTaskContext();
+  const { state, stateRef, toggleComplete, moveTo } = useTaskContext();
   const { openChatBot } = useChatBot();
   const { showSnackbar } = useSnackbar();
 
   const [detailModalVisible, setDetailModalVisible] = useState(false);
   const [selectedTask, setSelectedTask] = useState(null);
-
-  const [lastCompletedTask, setLastCompletedTask] = useState(null);
-  //const lastCompletedTaskId = useRef(null);
   const [menuVisible, setMenuVisible] = useState(false);
-
 
   const today = new Date();
   const todayTasks = state.tasks
@@ -40,29 +36,26 @@ const TodayScreen = () => {
     setSelectedTask(null);
   };
 
-  const handleOnPressItem= (item)  => {
-      setSelectedTask(item);
-      setDetailModalVisible(true);
+  const handleOnPressItem = (item) => {
+    setSelectedTask(item);
+    setDetailModalVisible(true);
   };  
 
-  // Handler for completing a task
-   const handleComplete = (task) => {
-    toggleComplete(task.id);
-    setLastCompletedTask(task);
-    showSnackbar(
-      `${task.title} completed!`,
-      () => handleUndo(), // Undo action
-      'Undo'
-    );
-  };
+ 
+  const handleComplete = (task) => {
+  toggleComplete(task.id);
 
-  // Handler for undo
-  const handleUndo = () => {
-    if (lastCompletedTask) {
-      toggleComplete(lastCompletedTask.id); 
-    }
-  };
-
+  showSnackbar(
+    `${task.title} completed!`,
+    () => {
+      const currentTask = stateRef.current.tasks.find(t => t.id === task.id);
+      if (currentTask?.completed) {
+        toggleComplete(task.id);
+      }
+    },
+    'Undo'
+  );
+}
 
   return (
     <View style={styles.container}>
@@ -72,31 +65,31 @@ const TodayScreen = () => {
       </View>
      
       { (todayTasks.length === 0 && overdueTasks.length === 0) ? (
-         <View style={{ alignItems: 'center', marginTop: 60 }}>
-                  <Image
-                    source={require('../assets/today2.png')}
-                    style={{ width: 300, height: 300, marginBottom: 24, opacity: 0.85, marginTop: 45 }}
-                    resizeMode="contain"
-                  />
-                  <Text style={{ fontSize: 18, color: '#333', fontWeight: '600', textAlign: 'center' }}>
-                     Enjoy your {new Date().toLocaleDateString(undefined, { weekday: 'long' })}!
-                  </Text>
-                  <Text style={{ fontSize: 15, color: '#888', fontWeight: '400', marginTop: 6, textAlign: 'center', maxWidth: 260, lineHeight: 22 }}>
-                    Take a deep breath. You&apos;ve cleared your priorities.
-                  </Text>
+        <View style={{ alignItems: 'center', marginTop: 60 }}>
+          <Image
+            source={require('../assets/today2.png')}
+            style={{ width: 300, height: 300, marginBottom: 24, opacity: 0.85, marginTop: 45 }}
+            resizeMode="contain"
+          />
+          <Text style={{ fontSize: 18, color: '#333', fontWeight: '600', textAlign: 'center' }}>
+            Enjoy your {new Date().toLocaleDateString(undefined, { weekday: 'long' })}!
+          </Text>
+          <Text style={{ fontSize: 15, color: '#888', fontWeight: '400', marginTop: 6, textAlign: 'center', maxWidth: 260, lineHeight: 22 }}>
+            Take a deep breath. You&apos;ve cleared your priorities.
+          </Text>
         </View>
       ) : (
-         <FlatList
-        data={todayTasks}
-        keyExtractor={item => item.id}
-        renderItem={({ item }) => (
-          <TaskCard
-            task={item}
-            onPress={() => handleOnPressItem(item)}
-            onComplete={() => handleComplete(item)}
-          />
-        )}
-      />
+        <FlatList
+          data={todayTasks}
+          keyExtractor={item => item.id}
+          renderItem={({ item }) => (
+            <TaskCard
+              task={item}
+              onPress={() => handleOnPressItem(item)}
+              onComplete={() => handleComplete(item)}
+            />
+          )}
+        />
       )}
 
       <FAB onPress={openChatBot} />
@@ -113,10 +106,11 @@ const TodayScreen = () => {
           onComplete={handleComplete} 
         />
       )}
-
     </View>
   );
 };
+
+
 
 const styles = StyleSheet.create({
   container: {
@@ -142,5 +136,3 @@ const styles = StyleSheet.create({
 });
 
 export default TodayScreen;
-
-

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useReducer, useEffect } from 'react';
+import React, { createContext, useContext, useReducer, useEffect, useRef } from 'react';
 import { debugFetch } from '../utils/debugFetch';
 import { AuthContext } from './AuthContext';
 import { API_BASE_URL } from '@env';
@@ -15,24 +15,50 @@ const reducer = (state, action) => {
   switch (action.type) {
     case 'SET_TASKS':
       return { ...state, tasks: action.payload };
-    case 'ADD_TASK':
+
+    case 'ADD_TASK': // legacy (server-confirmed adds)
       return { ...state, tasks: [...state.tasks, action.payload] };
+
+    // NEW: optimistic insert of a local temp task
+    case 'ADD_TASK_OPTIMISTIC':
+      return { ...state, tasks: [...state.tasks, action.payload] };
+
+    // NEW: replace a temp task with the server-confirmed task
+    case 'REPLACE_TASK': {
+      const { tempId, task } = action.payload;
+      return {
+        ...state,
+        tasks: state.tasks.map((t) => (t.id === tempId ? task : t)),
+      };
+    }
+
+    // NEW: rollback temp task
+    case 'REVERT_OPTIMISTIC_TASK':
+      return {
+        ...state,
+        tasks: state.tasks.filter((t) => t.id !== action.payload),
+      };
+
     case 'UPDATE_TASK':
       return {
         ...state,
         tasks: state.tasks.map((task) =>
-          task.id === action.payload.id ? action.payload : task
+          task.id === action.payload.id ? { ...task, ...action.payload } : task
         ),
       };
+
     case 'DELETE_TASK':
       return {
         ...state,
         tasks: state.tasks.filter((task) => task.id !== action.payload),
       };
+
     case 'SET_PROJECTS':
       return { ...state, projects: action.payload };
+
     case 'ADD_PROJECT':
       return { ...state, projects: [...state.projects, action.payload] };
+
     case 'UPDATE_PROJECT':
       return {
         ...state,
@@ -40,20 +66,24 @@ const reducer = (state, action) => {
           p.id === action.payload.id ? { ...p, ...action.payload } : p
         ),
       };
+
     case 'DELETE_PROJECT_AND_TASKS':
       return {
         ...state,
         projects: state.projects.filter((p) => p.id !== action.payload),
         tasks: state.tasks.filter((task) => task.projectId !== action.payload),
       };
+
     case 'SET_CONTEXTS':
       return { ...state, contexts: action.payload };
+
     case 'ADD_CONTEXT':
       if (state.contexts.some((c) => c.context_name === action.payload.context_name)) return state;
       return {
         ...state,
         contexts: [...state.contexts, action.payload],
       };
+
     case 'UPDATE_CONTEXT':
       return {
         ...state,
@@ -61,16 +91,27 @@ const reducer = (state, action) => {
           c.id === action.payload.id ? { ...c, ...action.payload } : c
         ),
       };
+
     case 'DELETE_CONTEXT':
       return {
         ...state,
         contexts: state.contexts.filter((c) => c.id !== action.payload),
+        // FIX: tasks use nextActionId, not contextId
         tasks: state.tasks.map((task) =>
-          task.contextId === action.payload
-            ? { ...task, contextId: null, completed: true }
+          task.nextActionId === action.payload
+            ? { ...task, nextActionId: null }
             : task
         ),
       };
+
+    case 'OPTIMISTIC_TOGGLE_TASK':
+      return {
+        ...state,
+        tasks: state.tasks.map((task) =>
+          task.id === action.payload ? { ...task, completed: !task.completed } : task
+        ),
+      };
+
     default:
       return state;
   }
@@ -79,6 +120,12 @@ const reducer = (state, action) => {
 export const TaskProvider = ({ children }) => {
   const [state, dispatch] = useReducer(reducer, initialState);
   const { getCurrentToken, user, initializing } = useContext(AuthContext);
+  const stateRef = useRef(state);
+
+  // Keep ref updated
+  useEffect(() => {
+    stateRef.current = state;
+  }, [state]);
 
   // Debug logging for authentication state
   useEffect(() => {
@@ -116,7 +163,7 @@ export const TaskProvider = ({ children }) => {
     try {
       const token = await getAuthToken();
       console.log('🔑 Token obtained for fetchAll');
-      
+
       // Fetch tasks
       console.log('📋 Fetching tasks...');
       const tasksRes = await debugFetch(`${API_BASE_URL}/api/tasks`, {
@@ -128,7 +175,7 @@ export const TaskProvider = ({ children }) => {
         dispatch({ type: 'SET_TASKS', payload: tasksData.tasks });
         console.log('✅ Tasks loaded:', tasksData.tasks.length);
       }
-      
+
       // Fetch projects
       console.log('📁 Fetching projects...');
       const projectsRes = await debugFetch(`${API_BASE_URL}/api/projects`, {
@@ -140,7 +187,7 @@ export const TaskProvider = ({ children }) => {
         dispatch({ type: 'SET_PROJECTS', payload: projectsData.projects });
         console.log('✅ Projects loaded:', projectsData.projects.length);
       }
-      
+
       // Fetch next-actions/contexts
       console.log('🎯 Fetching next actions...');
       const contextsRes = await debugFetch(`${API_BASE_URL}/api/next-actions`, {
@@ -152,7 +199,7 @@ export const TaskProvider = ({ children }) => {
         dispatch({ type: 'SET_CONTEXTS', payload: contextsData.nextActions });
         console.log('✅ Next actions loaded:', contextsData.nextActions.length);
       }
-      
+
       console.log('✅ fetchAll completed successfully');
     } catch (error) {
       console.error('❌ Error in fetchAll:', error);
@@ -160,20 +207,19 @@ export const TaskProvider = ({ children }) => {
       console.error('  - Error stack:', error.stack);
     }
   };
-    
+
   // Only fetch data when user is authenticated and not initializing
   useEffect(() => {
     console.log('🔄 TaskContext useEffect triggered:');
     console.log('  - initializing:', initializing);
     console.log('  - user exists:', !!user);
     console.log('  - user.emailVerified:', user?.emailVerified);
-    
+
     if (!initializing && user && user.emailVerified) {
       console.log('✅ Conditions met, calling fetchAll');
       fetchAll();
     } else if (!initializing && !user) {
       console.log('🧹 User not authenticated, clearing data');
-      // Clear data when user is not authenticated
       dispatch({ type: 'SET_TASKS', payload: [] });
       dispatch({ type: 'SET_PROJECTS', payload: [] });
       dispatch({ type: 'SET_CONTEXTS', payload: [] });
@@ -182,63 +228,97 @@ export const TaskProvider = ({ children }) => {
     }
   }, [user, initializing]);
 
+  // --- Utilities ---
+
+  // Generate a stable temporary id for optimistic items
+  const genTempId = () => `temp_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+
+  // Fetch with timeout
+  const fetchWithTimeout = async (url, options = {}, timeoutMs = 15000) => {
+    const controller = new AbortController();
+    const id = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      const res = await debugFetch(url, { ...options, signal: controller.signal });
+      return res;
+    } finally {
+      clearTimeout(id);
+    }
+  };
+
   // TASKS
   const addTask = async (title, description, dueDate, priority, category = 'inbox', projectId = null, nextActionId = null) => {
-    console.log('➕ Adding task:', { title, category, projectId });
-    
-    // Only allow API calls if user is authenticated
+    console.log('➕ Adding task (optimistic):', { title, category, projectId });
+
     if (!user || !user.emailVerified) {
       console.error('❌ User not authenticated for addTask');
       return;
     }
 
+    const tempId = genTempId();
+    const optimisticTask = {
+      id: tempId,
+      title,
+      description,
+      dueDate,
+      priority,
+      category,
+      projectId,
+      nextActionId,
+      completed: false,
+      trashed: false,
+      optimistic: true,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    dispatch({ type: 'ADD_TASK_OPTIMISTIC', payload: optimisticTask });
+
     try {
       const token = await getAuthToken();
-      const taskData = {
-        title,
-        description,
-        dueDate,
-        priority,
-        category,
-        projectId,
-        nextActionId,
-      };
-      
-      console.log('📤 Sending task data:', taskData);
-      
-      const res = await debugFetch(`${API_BASE_URL}/api/tasks`, {
+      const body = { title, description, dueDate, priority, category, projectId, nextActionId };
+
+      const res = await fetchWithTimeout(`${API_BASE_URL}/api/tasks`, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(taskData),
-      });
-      
+        body: JSON.stringify(body),
+      }, 20000);
+
       const data = await res.json();
       console.log('📥 Task creation response:', data);
-      
+
       if (res.ok && data.task) {
-        dispatch({ type: 'ADD_TASK', payload: data.task });
-        console.log('✅ Task added successfully');
+        dispatch({ type: 'REPLACE_TASK', payload: { tempId, task: { ...data.task, optimistic: false } } });
+        console.log('✅ Task added successfully (server confirmed)');
       } else {
+        dispatch({ type: 'REVERT_OPTIMISTIC_TASK', payload: tempId });
         console.error('❌ Task creation failed:', data);
       }
     } catch (error) {
+      dispatch({ type: 'REVERT_OPTIMISTIC_TASK', payload: tempId });
       console.error('❌ Error adding task:', error);
     }
   };
 
+  // OPTIMISTIC updateTask
   const updateTask = async (updatedTask) => {
-    // Only allow API calls if user is authenticated
     if (!user || !user.emailVerified) {
       console.error('User not authenticated');
       return;
     }
 
+    // Save previous snapshot for rollback
+    const prev = stateRef.current.tasks.find(t => t.id === updatedTask.id);
+    if (!prev) return;
+
+    // Optimistic apply
+    dispatch({ type: 'UPDATE_TASK', payload: updatedTask });
+
     try {
       const token = await getAuthToken();
-      const res = await debugFetch(`${API_BASE_URL}/api/tasks/${updatedTask.id}`, {
+      const res = await fetchWithTimeout(`${API_BASE_URL}/api/tasks/${updatedTask.id}`, {
         method: 'PUT',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -248,15 +328,21 @@ export const TaskProvider = ({ children }) => {
       });
       const data = await res.json();
       if (res.ok && data.task) {
+        // Normalize to server version (keeps server timestamps, etc.)
         dispatch({ type: 'UPDATE_TASK', payload: data.task });
+      } else {
+        // Revert
+        dispatch({ type: 'UPDATE_TASK', payload: prev });
+        console.error('Error updating task (server response not ok):', data);
       }
     } catch (error) {
+      // Revert on error
+      dispatch({ type: 'UPDATE_TASK', payload: prev });
       console.error('Error updating task:', error);
     }
   };
 
   const deleteTask = async (taskId) => {
-    // Only allow API calls if user is authenticated
     if (!user || !user.emailVerified) {
       console.error('User not authenticated');
       return;
@@ -264,7 +350,7 @@ export const TaskProvider = ({ children }) => {
 
     try {
       const token = await getAuthToken();
-      const res = await debugFetch(`${API_BASE_URL}/api/tasks/${taskId}`, {
+      const res = await fetchWithTimeout(`${API_BASE_URL}/api/tasks/${taskId}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -277,29 +363,33 @@ export const TaskProvider = ({ children }) => {
   };
 
   const toggleComplete = async (taskId) => {
-    // Only allow API calls if user is authenticated
     if (!user || !user.emailVerified) {
       console.error('User not authenticated');
       return;
     }
 
+    const prevTask = stateRef.current.tasks.find(t => t.id === taskId);
+    if (!prevTask) return;
+
+    const newCompleted = !prevTask.completed;
+
+    dispatch({ type: 'OPTIMISTIC_TOGGLE_TASK', payload: taskId });
+
     try {
       const token = await getAuthToken();
-      const task = state.tasks.find(t => t.id === taskId);
-      if (!task) return;
 
       const reqBody = {
-        title: task.title,
-        description: task.description,
-        dueDate: task.dueDate,
-        priority: task.priority,
-        category: task.category,
-        projectId: task.projectId || null,
-        nextActionId: task.nextActionId || null,
-        completed: !task.completed, 
+        title: prevTask.title,
+        description: prevTask.description,
+        dueDate: prevTask.dueDate,
+        priority: prevTask.priority,
+        category: prevTask.category,
+        projectId: prevTask.projectId || null,
+        nextActionId: prevTask.nextActionId || null,
+        completed: newCompleted,
       };
 
-      const res = await debugFetch(`${API_BASE_URL}/api/tasks/${taskId}`, {
+      const res = await fetchWithTimeout(`${API_BASE_URL}/api/tasks/${taskId}`, {
         method: 'PUT',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -307,18 +397,24 @@ export const TaskProvider = ({ children }) => {
         },
         body: JSON.stringify(reqBody),
       });
+
       const data = await res.json();
+
       if (res.ok && data.task) {
         dispatch({ type: 'UPDATE_TASK', payload: data.task });
+      } else {
+        // revert optimistic change
+        dispatch({ type: 'OPTIMISTIC_TOGGLE_TASK', payload: taskId });
       }
     } catch (error) {
       console.error('Error toggling task completion:', error);
+      // revert on error
+      dispatch({ type: 'OPTIMISTIC_TOGGLE_TASK', payload: taskId });
     }
   };
 
   // PROJECTS
   const addProject = async (name, description = "") => {
-    // Only allow API calls if user is authenticated
     if (!user || !user.emailVerified) {
       console.error('User not authenticated');
       return null;
@@ -326,7 +422,7 @@ export const TaskProvider = ({ children }) => {
 
     try {
       const token = await getAuthToken();
-      const res = await debugFetch(`${API_BASE_URL}/api/projects`, {
+      const res = await fetchWithTimeout(`${API_BASE_URL}/api/projects`, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -337,7 +433,7 @@ export const TaskProvider = ({ children }) => {
       const data = await res.json();
       if (res.ok && data.project) {
         dispatch({ type: 'ADD_PROJECT', payload: data.project });
-        return data.project; 
+        return data.project;
       }
       return null;
     } catch (error) {
@@ -347,7 +443,6 @@ export const TaskProvider = ({ children }) => {
   };
 
   const updateProject = async (project) => {
-    // Only allow API calls if user is authenticated
     if (!user || !user.emailVerified) {
       console.error('User not authenticated');
       return;
@@ -355,7 +450,7 @@ export const TaskProvider = ({ children }) => {
 
     try {
       const token = await getAuthToken();
-      const res = await debugFetch(`${API_BASE_URL}/api/projects/${project.id}`, {
+      const res = await fetchWithTimeout(`${API_BASE_URL}/api/projects/${project.id}`, {
         method: 'PUT',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -373,7 +468,6 @@ export const TaskProvider = ({ children }) => {
   };
 
   const deleteProject = async (projectId) => {
-    // Only allow API calls if user is authenticated
     if (!user || !user.emailVerified) {
       console.error('User not authenticated');
       return;
@@ -381,7 +475,7 @@ export const TaskProvider = ({ children }) => {
 
     try {
       const token = await getAuthToken();
-      const res = await debugFetch(`${API_BASE_URL}/api/projects/${projectId}`, {
+      const res = await fetchWithTimeout(`${API_BASE_URL}/api/projects/${projectId}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -395,7 +489,6 @@ export const TaskProvider = ({ children }) => {
 
   // NEXT-ACTIONS / CONTEXTS
   const addContext = async (context_name) => {
-    // Only allow API calls if user is authenticated
     if (!user || !user.emailVerified) {
       console.error('User not authenticated');
       return null;
@@ -403,7 +496,7 @@ export const TaskProvider = ({ children }) => {
 
     try {
       const token = await getAuthToken();
-      const res = await debugFetch(`${API_BASE_URL}/api/next-actions`, {
+      const res = await fetchWithTimeout(`${API_BASE_URL}/api/next-actions`, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -414,7 +507,7 @@ export const TaskProvider = ({ children }) => {
       const data = await res.json();
       if (res.ok && data.nextAction) {
         dispatch({ type: 'ADD_CONTEXT', payload: data.nextAction });
-        return data.nextAction; 
+        return data.nextAction;
       }
       return null;
     } catch (error) {
@@ -424,7 +517,6 @@ export const TaskProvider = ({ children }) => {
   };
 
   const updateContext = async (context) => {
-    // Only allow API calls if user is authenticated
     if (!user || !user.emailVerified) {
       console.error('User not authenticated');
       return;
@@ -432,7 +524,7 @@ export const TaskProvider = ({ children }) => {
 
     try {
       const token = await getAuthToken();
-      const res = await debugFetch(`${API_BASE_URL}/api/next-actions/${context.id}`, {
+      const res = await fetchWithTimeout(`${API_BASE_URL}/api/next-actions/${context.id}`, {
         method: 'PUT',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -450,7 +542,6 @@ export const TaskProvider = ({ children }) => {
   };
 
   const deleteContext = async (contextId) => {
-    // Only allow API calls if user is authenticated
     if (!user || !user.emailVerified) {
       console.error('User not authenticated');
       return;
@@ -458,7 +549,7 @@ export const TaskProvider = ({ children }) => {
 
     try {
       const token = await getAuthToken();
-      const res = await debugFetch(`${API_BASE_URL}/api/next-actions/${contextId}`, {
+      const res = await fetchWithTimeout(`${API_BASE_URL}/api/next-actions/${contextId}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -470,8 +561,8 @@ export const TaskProvider = ({ children }) => {
     }
   };
 
+  // OPTIMISTIC moveTo
   const moveTo = async (taskId, type, payload) => {
-    // Only allow API calls if user is authenticated
     if (!user || !user.emailVerified) {
       console.error('User not authenticated');
       return;
@@ -479,11 +570,10 @@ export const TaskProvider = ({ children }) => {
 
     try {
       const token = await getAuthToken();
-      // Find the task to update
-      const task = state.tasks.find(t => t.id === taskId);
-      if (!task) return;
+      const prevTask = stateRef.current.tasks.find(t => t.id === taskId);
+      if (!prevTask) return;
 
-      let updatedTask = { ...task };
+      let updatedTask = { ...prevTask };
 
       if (type === 'project' && payload.projectId) {
         updatedTask.projectId = payload.projectId;
@@ -492,7 +582,10 @@ export const TaskProvider = ({ children }) => {
         updatedTask.nextActionId = payload.contextId;
       }
 
-      const res = await debugFetch(`${API_BASE_URL}/api/tasks/${taskId}`, {
+      // Optimistic apply
+      dispatch({ type: 'UPDATE_TASK', payload: updatedTask });
+
+      const res = await fetchWithTimeout(`${API_BASE_URL}/api/tasks/${taskId}`, {
         method: 'PUT',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -503,9 +596,16 @@ export const TaskProvider = ({ children }) => {
       const data = await res.json();
       if (res.ok && data.task) {
         dispatch({ type: 'UPDATE_TASK', payload: data.task });
+      } else {
+        // revert on server error
+        dispatch({ type: 'UPDATE_TASK', payload: prevTask });
+        console.error('Error moving task (server response not ok):', data);
       }
     } catch (error) {
       console.error('Error moving task:', error);
+      // revert on network error
+      const prevTask = stateRef.current.tasks.find(t => t.id === taskId);
+      if (prevTask) dispatch({ type: 'UPDATE_TASK', payload: prevTask });
     }
   };
 
@@ -519,6 +619,7 @@ export const TaskProvider = ({ children }) => {
     <TaskContext.Provider
       value={{
         state,
+        stateRef,
         dispatch,
         addTask,
         updateTask,

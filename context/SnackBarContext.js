@@ -1,52 +1,67 @@
-import React, { createContext, useContext, useState } from 'react';
-import { Snackbar, Text } from 'react-native-paper'; // Import Text from react-native-paper
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import { Snackbar, Text } from 'react-native-paper';
 
 const SnackbarContext = createContext();
 
 export const SnackbarProvider = ({ children }) => {
-  const [visible, setVisible] = useState(false);
-  const [message, setMessage] = useState('');
-  const [actionLabel, setActionLabel] = useState('');
-  const [onAction, setOnAction] = useState(null);
-  const [duration, setDuration] = useState(3000);
+  const [snackbarQueue, setSnackbarQueue] = useState([]);
+  const [currentSnackbar, setCurrentSnackbar] = useState(null);
 
-  const showSnackbar = (msg, action = null, label = 'Undo', dur = 35000) => {
-    setMessage(msg);
-    setActionLabel(label);
-    setOnAction(() => action);
-    setDuration(dur);
-    setVisible(true);
+  const showSnackbar = (msg, action = null, label = 'Undo', dur = 3500) => {
+    const newSnackbar = {
+      id: Date.now(),
+      message: msg,
+      actionLabel: label,
+      onAction: action,
+      duration: dur
+    };
+    setSnackbarQueue(prev => [...prev, newSnackbar]);
   };
 
+  // Whenever queue changes and no snackbar is shown, show the next
+  useEffect(() => {
+    if (!currentSnackbar && snackbarQueue.length > 0) {
+      setCurrentSnackbar(snackbarQueue[0]);
+      setSnackbarQueue(prev => prev.slice(1));
+    }
+  }, [snackbarQueue, currentSnackbar]);
+
   const hideSnackbar = () => {
-    setVisible(false);
-    // Reset after animation completes
-    setTimeout(() => {
-      setMessage('');
-      setActionLabel('');
-      setOnAction(null);
-    }, 300);
+    setCurrentSnackbar(null);
   };
 
   return (
     <SnackbarContext.Provider value={{ showSnackbar }}>
       {children}
-      <Snackbar
-        visible={visible}
-        onDismiss={hideSnackbar}
-        duration={duration}
-        action={{
-          label: actionLabel,
-          onPress: () => {
-            if (onAction) onAction();
-            hideSnackbar();
-          },
-          labelStyle: { color: '#007AFF', fontWeight: 'bold' },
-        }}
-        style={{ backgroundColor: '#222', marginBottom: 220, marginLeft: 15, borderRadius: 8 }}
-      >
-        <Text style={{ fontWeight: 'bold', color: '#fff' }}>{message}</Text>
-      </Snackbar>
+      {currentSnackbar && (
+        <Snackbar
+          visible
+          onDismiss={hideSnackbar}
+          duration={currentSnackbar.duration}
+          action={{
+            label: currentSnackbar.actionLabel,
+            onPress: () => {
+              currentSnackbar.onAction?.();
+              hideSnackbar();
+            },
+            labelStyle: { color: '#007AFF', fontWeight: 'bold' },
+          }}
+          style={{
+            backgroundColor: '#222',
+            marginHorizontal: 15,
+            borderRadius: 8,
+            position: 'absolute',
+            bottom: 200,
+            left: 0,
+            right: 0,
+            zIndex: 999
+          }}
+        >
+          <Text style={{ fontWeight: 'bold', color: '#fff' }}>
+            {currentSnackbar.message}
+          </Text>
+        </Snackbar>
+      )}
     </SnackbarContext.Provider>
   );
 };

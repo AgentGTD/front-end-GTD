@@ -1,10 +1,21 @@
-//emialverifuScreen
-import React, { useEffect, useState, useRef } from "react";
-import { View, Text, TouchableOpacity, StyleSheet, Image, Linking, Alert, SafeAreaView, Dimensions } from "react-native";
+import React, { useEffect, useState, useRef, useContext } from "react";
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  Image,
+  Linking,
+  Alert,
+  SafeAreaView,
+  Dimensions,
+} from "react-native";
 import { auth } from "../utils/firebase";
-import { useNavigation, useIsFocused } from "@react-navigation/native";
+import { useIsFocused, useNavigation } from "@react-navigation/native";
+import { AuthContext } from "../context/AuthContext";
+import {  sendEmailVerification } from "firebase/auth";
 
-const { width, height } = Dimensions.get('window');
+const { width, height } = Dimensions.get("window");
 
 export default function EmailVerificationScreen() {
   const navigation = useNavigation();
@@ -13,6 +24,7 @@ export default function EmailVerificationScreen() {
   const [email, setEmail] = useState(auth.currentUser?.email || "");
   const [checking, setChecking] = useState(false);
   const mounted = useRef(true);
+  const { reloadUser } = useContext(AuthContext);
 
   useEffect(() => {
     return () => {
@@ -23,18 +35,14 @@ export default function EmailVerificationScreen() {
   useEffect(() => {
     if (!isFocused) return;
 
-    const interval = setInterval(async () => {
+    const checkVerification = async () => {
       if (!mounted.current) return;
-      
-      setChecking(true);
       try {
-        const user = auth.currentUser;
-        if (user) {
-          await user.reload();
-          if (user.emailVerified) {
-            setChecking(false);
-            // Check if navigation is ready before navigating
-            if (navigation.isReady()) {
+        setChecking(true);
+        if (auth.currentUser) {
+          await auth.currentUser.reload();
+          if (auth.currentUser.emailVerified) {
+            if (mounted.current) {
               navigation.navigate("ProfileSetup");
             }
           }
@@ -46,10 +54,13 @@ export default function EmailVerificationScreen() {
           setChecking(false);
         }
       }
-    }, 3000);
-    
+    };
+
+    checkVerification();
+    const interval = setInterval(checkVerification, 3000);
+
     return () => clearInterval(interval);
-  }, [isFocused]);
+  }, [isFocused, reloadUser]);
 
   const openEmailApp = () => {
     Linking.openURL("mailto:");
@@ -57,13 +68,13 @@ export default function EmailVerificationScreen() {
 
   const resendVerificationEmail = async () => {
     if (!mounted.current) return;
-    
+
     setLoading(true);
     try {
       const user = auth.currentUser;
-      if (user && typeof user.sendEmailVerification === 'function') {
-        await user.sendEmailVerification();
-        Alert.alert("Verification sent", "Check your inbox.");
+      if (user) {
+       await sendEmailVerification(user);
+        Alert.alert("Verification email sent", "Check your inbox.");
       } else {
         Alert.alert("Error", "User not found or cannot send verification email.");
       }
@@ -78,15 +89,15 @@ export default function EmailVerificationScreen() {
 
   const refreshVerification = async () => {
     if (!mounted.current) return;
-    
     setChecking(true);
     try {
       await auth.currentUser.reload();
       if (auth.currentUser.emailVerified) {
-        if (navigation.isReady()) {
+        if (mounted.current) {
           navigation.navigate("ProfileSetup");
         }
-      } else {
+      }
+      if (!auth.currentUser.emailVerified) {
         Alert.alert("Not verified", "Your email is still not verified.");
       }
     } catch (error) {
@@ -100,9 +111,6 @@ export default function EmailVerificationScreen() {
 
   const changeAccount = async () => {
     await auth.signOut();
-    if (navigation.isReady()) {
-      navigation.reset({ index: 0, routes: [{ name: "Entry" }] });
-    }
   };
 
   return (
@@ -116,7 +124,7 @@ export default function EmailVerificationScreen() {
           {"\n"}to activate your account and start organizing with FlowDo.
         </Text>
         <Text style={styles.info2}>
-           Didn’t get it? Check your spam folder or tap below to resend.
+          Didn’t get it? Check your spam folder or tap below to resend.
         </Text>
         <Image
           source={require("../assets/email-verify.png")}
@@ -133,7 +141,11 @@ export default function EmailVerificationScreen() {
             <Text style={styles.primaryBtnText}>Open email</Text>
           </TouchableOpacity>
           <TouchableOpacity
-            style={[styles.button, styles.outlineBtn, loading && { opacity: 0.7 }]}
+            style={[
+              styles.button,
+              styles.outlineBtn,
+              loading && { opacity: 0.7 },
+            ]}
             onPress={resendVerificationEmail}
             disabled={loading}
             accessibilityLabel="Resend verification email"
@@ -142,13 +154,19 @@ export default function EmailVerificationScreen() {
             <Text style={styles.outlineBtnText}>Resend email</Text>
           </TouchableOpacity>
           <TouchableOpacity
-            style={[styles.button, styles.outlineBtn, checking && { opacity: 0.7 }]}
+            style={[
+              styles.button,
+              styles.outlineBtn,
+              checking && { opacity: 0.7 },
+            ]}
             onPress={refreshVerification}
             disabled={checking}
             accessibilityLabel="Refresh verification status"
             activeOpacity={0.8}
           >
-            <Text style={styles.outlineBtnText}>Already verified? Refresh</Text>
+            <Text style={styles.outlineBtnText}>
+              Already verified? Refresh
+            </Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.button, styles.outlineBtn]}
@@ -214,7 +232,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     marginVertical: 6,
-    flexDirection: 'row',
+    flexDirection: "row",
   },
   primaryBtn: {
     backgroundColor: "#007AFF",

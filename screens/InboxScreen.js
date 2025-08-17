@@ -7,12 +7,11 @@ import FAB from '../components/FAB';
 import { useChatBot } from '../context/ChatBotContext';
 import TaskDetailModal from '../components/TaskDetailModal';
 import TaskCard from '../components/TaskCard';
-import { Snackbar } from 'react-native-paper';
 import MenuComponent from '../components/MenuComponent';
 import { useSnackbar } from '../context/SnackBarContext'; 
 
 const InboxScreen = () => {
-  const { state,  toggleComplete, moveTo } = useTaskContext();
+  const { state, stateRef, toggleComplete, moveTo } = useTaskContext();
   const { openChatBot } = useChatBot();
   const { showSnackbar } = useSnackbar();
   
@@ -23,7 +22,6 @@ const InboxScreen = () => {
 
   // Snackbar state
   //const [snackbarVisible, setSnackbarVisible] = useState(false);
-  const [lastCompletedTask, setLastCompletedTask] = useState(null);
 
  const handleMoveTo = (id, category, payload) => {
     moveTo(id, category, payload);
@@ -33,22 +31,21 @@ const InboxScreen = () => {
   
   
   // Handler for completing a task
-   const handleComplete = (task) => {
-    toggleComplete(task.id);
-    setLastCompletedTask(task);
-    showSnackbar(
-      `${task.title} completed!`,
-      () => handleUndo(), // Undo action
-      'Undo'
-    );
-  };
+  const handleComplete = (task) => {
+  toggleComplete(task.id);
 
-  // Handler for undo
-  const handleUndo = () => {
-    if (lastCompletedTask) {
-      toggleComplete(lastCompletedTask.id); 
-    }
-  };
+  showSnackbar(
+    `${task.title} completed!`,
+    () => {
+      const currentTask = stateRef.current.tasks.find(t => t.id === task.id);
+      if (currentTask?.completed) {
+        toggleComplete(task.id);
+      }
+    },
+    'Undo'
+  );
+}
+
 
   const filtered = state.tasks.filter(
     task =>
