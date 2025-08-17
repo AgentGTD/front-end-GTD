@@ -8,6 +8,7 @@ import {useChatBot} from '../context/ChatBotContext';;
 import TaskCard from '../components/TaskCard';
 import { useSnackbar } from '../context/SnackBarContext'; 
 import { Ionicons } from '@expo/vector-icons';
+import SkeletonTask from '../components/Loaders/SkeletonTask';
 
 
 const ProjectDetailScreen = () => {
@@ -114,6 +115,16 @@ const ProjectDetailScreen = () => {
     setSavingName(false);
     setEditModalVisible(false);
   };
+
+  if (state.loading) {
+    return (
+      <View style={styles.container}>
+        <SkeletonTask />
+        <SkeletonTask />
+        <SkeletonTask />
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>

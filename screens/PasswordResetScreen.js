@@ -5,6 +5,8 @@ import { auth } from "../utils/firebase";
 import { useNavigation } from "@react-navigation/native";
 import { validateEmail } from '../utils/validation';
 import { Ionicons } from "@expo/vector-icons";
+import LoadingButton from "../components/Loaders/LoadingButton";
+import { useAuthFeedback } from "../context/AuthFeedbackContext";
 
 export default function PasswordResetScreen() {
   const [email, setEmail] = useState("");
@@ -12,23 +14,25 @@ export default function PasswordResetScreen() {
   const [emailFocused, setEmailFocused] = useState(false);
   const emailInputRef = useRef(null);
   const navigation = useNavigation();
+  const { showAuthFeedback } = useAuthFeedback();
   const isEmailValid = validateEmail(email);
 
   const handleResetPassword = async () => {
     if (!email.trim()) {
-      Alert.alert("Error", "Please enter your email.");
+      showAuthFeedback("Error", "Please enter your email.");
       return;
     }
     setLoading(true);
     try {
       await sendPasswordResetEmail(auth, email.trim());
-      Alert.alert(
+      showAuthFeedback(
         "Password Reset Sent",
         "Check your email for the reset link. Follow the instructions to reset your password.",
-        [{ text: "OK", onPress: () => navigation.navigate("Login") }]
+        "success"
       );
+      navigation.navigate("Login");
     } catch (error) {
-      Alert.alert("Error", error.message);
+      showAuthFeedback("Error", error.message);
     } finally {
       setLoading(false);
     }
@@ -76,17 +80,13 @@ export default function PasswordResetScreen() {
             />
           </View>
         </View>
-        <TouchableOpacity
-          style={[
-            styles.button,
-            (!isEmailValid || loading) && { backgroundColor: '#77afeaff', opacity: 0.7 },
-            isEmailValid && !loading && { backgroundColor: '#007AFF', opacity: 1 }
-          ]}
+        <LoadingButton
+          style={[!isEmailValid && { backgroundColor: '#77afeaff', opacity: 0.7 }]}
           onPress={handleResetPassword}
-          disabled={!isEmailValid || loading}
-        >
-          <Text style={styles.buttonText}>Send Reset Link</Text>
-        </TouchableOpacity>
+          disabled={!isEmailValid}
+          isLoading={loading}
+          title="Send Reset Link"
+        />
         <TouchableOpacity style={styles.backBtn} onPress={() => navigation.replace("Login")}>
           <Text style={styles.backText}>Back to Login</Text>
         </TouchableOpacity>

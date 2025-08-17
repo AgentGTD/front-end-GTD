@@ -9,21 +9,24 @@ const initialState = {
   tasks: [],
   projects: [],
   contexts: [],
+  loading: true,
 };
 
 const reducer = (state, action) => {
   switch (action.type) {
+    case 'SET_LOADING':
+      return { ...state, loading: action.payload };
+
     case 'SET_TASKS':
       return { ...state, tasks: action.payload };
 
     case 'ADD_TASK': // legacy (server-confirmed adds)
       return { ...state, tasks: [...state.tasks, action.payload] };
 
-    // NEW: optimistic insert of a local temp task
+    // --- Tasks optimistic ---
     case 'ADD_TASK_OPTIMISTIC':
       return { ...state, tasks: [...state.tasks, action.payload] };
 
-    // NEW: replace a temp task with the server-confirmed task
     case 'REPLACE_TASK': {
       const { tempId, task } = action.payload;
       return {
@@ -32,7 +35,6 @@ const reducer = (state, action) => {
       };
     }
 
-    // NEW: rollback temp task
     case 'REVERT_OPTIMISTIC_TASK':
       return {
         ...state,
@@ -53,11 +55,38 @@ const reducer = (state, action) => {
         tasks: state.tasks.filter((task) => task.id !== action.payload),
       };
 
+    // --- Projects ---
     case 'SET_PROJECTS':
       return { ...state, projects: action.payload };
 
-    case 'ADD_PROJECT':
+    case 'ADD_PROJECT': // server-confirmed add (kept for compatibility)
       return { ...state, projects: [...state.projects, action.payload] };
+
+    // NEW: optimistic project insert
+    case 'ADD_PROJECT_OPTIMISTIC':
+      return { ...state, projects: [...state.projects, action.payload] };
+
+    // NEW: replace temp project with server-confirmed one, also remap tasks that used temp id
+    case 'REPLACE_PROJECT': {
+      const { tempId, project } = action.payload;
+      return {
+        ...state,
+        projects: state.projects.map((p) => (p.id === tempId ? project : p)),
+        tasks: state.tasks.map((t) =>
+          t.projectId === tempId ? { ...t, projectId: project.id } : t
+        ),
+      };
+    }
+
+    // NEW: rollback optimistic project, clear temp project references on tasks
+    case 'REVERT_OPTIMISTIC_PROJECT':
+      return {
+        ...state,
+        projects: state.projects.filter((p) => p.id !== action.payload),
+        tasks: state.tasks.map((t) =>
+          t.projectId === action.payload ? { ...t, projectId: null } : t
+        ),
+      };
 
     case 'UPDATE_PROJECT':
       return {
@@ -74,14 +103,46 @@ const reducer = (state, action) => {
         tasks: state.tasks.filter((task) => task.projectId !== action.payload),
       };
 
+    // --- Contexts / Next Actions ---
     case 'SET_CONTEXTS':
       return { ...state, contexts: action.payload };
 
-    case 'ADD_CONTEXT':
+    case 'ADD_CONTEXT': // server-confirmed add (compat)
       if (state.contexts.some((c) => c.context_name === action.payload.context_name)) return state;
       return {
         ...state,
         contexts: [...state.contexts, action.payload],
+      };
+
+    // NEW: optimistic context insert
+    case 'ADD_CONTEXT_OPTIMISTIC': {
+      const exists = state.contexts.some(
+        (c) => c.context_name === action.payload.context_name
+      );
+      if (exists) return state;
+      return { ...state, contexts: [...state.contexts, action.payload] };
+    }
+
+    // NEW: replace temp context with server-confirmed one, also remap tasks nextActionId
+    case 'REPLACE_CONTEXT': {
+      const { tempId, context } = action.payload;
+      return {
+        ...state,
+        contexts: state.contexts.map((c) => (c.id === tempId ? context : c)),
+        tasks: state.tasks.map((t) =>
+          t.nextActionId === tempId ? { ...t, nextActionId: context.id } : t
+        ),
+      };
+    }
+
+    // NEW: rollback optimistic context, clear temp references on tasks
+    case 'REVERT_OPTIMISTIC_CONTEXT':
+      return {
+        ...state,
+        contexts: state.contexts.filter((c) => c.id !== action.payload),
+        tasks: state.tasks.map((t) =>
+          t.nextActionId === action.payload ? { ...t, nextActionId: null } : t
+        ),
       };
 
     case 'UPDATE_CONTEXT':
@@ -96,11 +157,9 @@ const reducer = (state, action) => {
       return {
         ...state,
         contexts: state.contexts.filter((c) => c.id !== action.payload),
-        // FIX: tasks use nextActionId, not contextId
+        // tasks use nextActionId, not contextId
         tasks: state.tasks.map((task) =>
-          task.nextActionId === action.payload
-            ? { ...task, nextActionId: null }
-            : task
+          task.nextActionId === action.payload ? { ...task, nextActionId: null } : task
         ),
       };
 
@@ -159,6 +218,7 @@ export const TaskProvider = ({ children }) => {
 
   // Fetch all data from backend on app start
   const fetchAll = async () => {
+    dispatch({ type: 'SET_LOADING', payload: true });
     console.log('📡 Starting fetchAll...');
     try {
       const token = await getAuthToken();
@@ -205,6 +265,8 @@ export const TaskProvider = ({ children }) => {
       console.error('❌ Error in fetchAll:', error);
       console.error('  - Error message:', error.message);
       console.error('  - Error stack:', error.stack);
+    } finally {
+      dispatch({ type: 'SET_LOADING', payload: false });
     }
   };
 
@@ -223,6 +285,7 @@ export const TaskProvider = ({ children }) => {
       dispatch({ type: 'SET_TASKS', payload: [] });
       dispatch({ type: 'SET_PROJECTS', payload: [] });
       dispatch({ type: 'SET_CONTEXTS', payload: [] });
+      dispatch({ type: 'SET_LOADING', payload: false });
     } else {
       console.log('⏳ Waiting for authentication state...');
     }
@@ -231,7 +294,8 @@ export const TaskProvider = ({ children }) => {
   // --- Utilities ---
 
   // Generate a stable temporary id for optimistic items
-  const genTempId = () => `temp_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+  const genTempId = () =>
+    `temp_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 
   // Fetch with timeout
   const fetchWithTimeout = async (url, options = {}, timeoutMs = 15000) => {
@@ -413,12 +477,24 @@ export const TaskProvider = ({ children }) => {
     }
   };
 
-  // PROJECTS
+  // PROJECTS (with optimistic create)
   const addProject = async (name, description = "") => {
     if (!user || !user.emailVerified) {
       console.error('User not authenticated');
       return null;
     }
+
+    // optimistic insert
+    const tempId = genTempId();
+    const tempProject = {
+      id: tempId,
+      name,
+      description,
+      optimistic: true,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    dispatch({ type: 'ADD_PROJECT_OPTIMISTIC', payload: tempProject });
 
     try {
       const token = await getAuthToken();
@@ -432,11 +508,16 @@ export const TaskProvider = ({ children }) => {
       });
       const data = await res.json();
       if (res.ok && data.project) {
-        dispatch({ type: 'ADD_PROJECT', payload: data.project });
-        return data.project;
+        const confirmed = { ...data.project, optimistic: false };
+        dispatch({ type: 'REPLACE_PROJECT', payload: { tempId, project: confirmed } });
+        return confirmed;
+      } else {
+        dispatch({ type: 'REVERT_OPTIMISTIC_PROJECT', payload: tempId });
+        console.error('Error adding project (server response not ok):', data);
+        return null;
       }
-      return null;
     } catch (error) {
+      dispatch({ type: 'REVERT_OPTIMISTIC_PROJECT', payload: tempId });
       console.error('Error adding project:', error);
       return null;
     }
@@ -487,12 +568,32 @@ export const TaskProvider = ({ children }) => {
     }
   };
 
-  // NEXT-ACTIONS / CONTEXTS
+  // NEXT-ACTIONS / CONTEXTS (with optimistic create)
   const addContext = async (context_name) => {
     if (!user || !user.emailVerified) {
       console.error('User not authenticated');
       return null;
     }
+
+    // optimistic insert (avoid duplicates by name)
+    const exists = stateRef.current.contexts.some(
+      (c) => c.context_name === context_name
+    );
+    if (exists) {
+      // already present – return the existing one
+      const found = stateRef.current.contexts.find(c => c.context_name === context_name);
+      return found || null;
+    }
+
+    const tempId = genTempId();
+    const tempContext = {
+      id: tempId,
+      context_name,
+      optimistic: true,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    dispatch({ type: 'ADD_CONTEXT_OPTIMISTIC', payload: tempContext });
 
     try {
       const token = await getAuthToken();
@@ -506,11 +607,16 @@ export const TaskProvider = ({ children }) => {
       });
       const data = await res.json();
       if (res.ok && data.nextAction) {
-        dispatch({ type: 'ADD_CONTEXT', payload: data.nextAction });
-        return data.nextAction;
+        const confirmed = { ...data.nextAction, optimistic: false };
+        dispatch({ type: 'REPLACE_CONTEXT', payload: { tempId, context: confirmed } });
+        return confirmed;
+      } else {
+        dispatch({ type: 'REVERT_OPTIMISTIC_CONTEXT', payload: tempId });
+        console.error('Error adding context (server response not ok):', data);
+        return null;
       }
-      return null;
     } catch (error) {
+      dispatch({ type: 'REVERT_OPTIMISTIC_CONTEXT', payload: tempId });
       console.error('Error adding context:', error);
       return null;
     }
@@ -561,7 +667,7 @@ export const TaskProvider = ({ children }) => {
     }
   };
 
-  // OPTIMISTIC moveTo
+  // OPTIMISTIC moveTo (unchanged behavior; safe because addProject/addContext now return confirmed ids)
   const moveTo = async (taskId, type, payload) => {
     if (!user || !user.emailVerified) {
       console.error('User not authenticated');

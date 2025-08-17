@@ -45,7 +45,7 @@ const TaskDetailModal = ({ visible, task, onClose, moveTo, onComplete }) => {
   const handleMoveToProject = async () => {
     if (newProjectName.trim()) {
       const projectName = newProjectName.trim();
-      const newProject = await addProject(projectName);
+      const newProject = await addProject(projectName); // optimistic inside
       if (newProject && newProject.id) {
         await moveTo(editableTask.id, 'project', { projectId: newProject.id });
         setEditableTask({ ...editableTask, projectId: newProject.id });
@@ -63,7 +63,7 @@ const TaskDetailModal = ({ visible, task, onClose, moveTo, onComplete }) => {
     const contextToAssign = newContextName.trim() || selectedContext;
     if (contextToAssign) {
       if (newContextName.trim()) {
-        const newContext = await addContext(newContextName.trim());
+        const newContext = await addContext(newContextName.trim()); // optimistic inside
         if (newContext && newContext.id) {
           await moveTo(editableTask.id, 'next', { contextId: newContext.id });
           setEditableTask({ ...editableTask, nextActionId: newContext.id });
@@ -147,7 +147,7 @@ const TaskDetailModal = ({ visible, task, onClose, moveTo, onComplete }) => {
                     onPress={() => setSelectedProject(item.id)}
                   >
                     <Ionicons name="folder-outline" size={22} color="#1976d2" style={{ marginRight: 8 }} />
-                    <Text style={styles.projectName}>{item.name}</Text>
+                    <Text style={styles.projectName}>{item.name}{item.optimistic ? ' (creating...)' : ''}</Text>
                   </TouchableOpacity>
                 )}
                 ListEmptyComponent={
@@ -189,7 +189,7 @@ const TaskDetailModal = ({ visible, task, onClose, moveTo, onComplete }) => {
                     onPress={() => setSelectedContext(item.id)}
                   >
                     <Ionicons name="at-outline" size={22} color="#43a047" style={{ marginRight: 8 }} />
-                    <Text style={styles.projectName}>{item.context_name}</Text>
+                    <Text style={styles.projectName}>{item.context_name}{item.optimistic ? ' (creating...)' : ''}</Text>
                   </TouchableOpacity>
                 )}
                 ListEmptyComponent={
@@ -429,7 +429,9 @@ const TaskDetailModal = ({ visible, task, onClose, moveTo, onComplete }) => {
   );
 };
 
+
 export default TaskDetailModal;
+
 
 const styles = StyleSheet.create({
   overlay: {

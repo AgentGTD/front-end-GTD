@@ -7,8 +7,8 @@ import { auth } from "../../utils/firebase";
 const FACEBOOK_APP_ID = process.env.FACEBOOK_APP_ID;   
 
 export default function FacebookSignInButton() {
-  const [response, promptAsync] = Facebook.useAuthRequest({
-    clientId: `${FACEBOOK_APP_ID}`,
+  const [request, response, promptAsync] = Facebook.useAuthRequest({
+    clientId: FACEBOOK_APP_ID,
   });
 
   React.useEffect(() => {
@@ -20,7 +20,9 @@ export default function FacebookSignInButton() {
   }, [response]);
 
   return (
-    <TouchableOpacity style={styles.button} onPress={() => promptAsync()}>
+    <TouchableOpacity style={styles.button}
+    disabled={!request}
+     onPress={() => promptAsync()}>
       <Image
         source={require("../../assets/facebook.png")}
         style={styles.icon}

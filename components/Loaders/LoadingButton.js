@@ -1,33 +1,33 @@
-// components/LoadingButton.js
 import React from 'react';
-import { TouchableOpacity, Text, ActivityIndicator, StyleSheet } from 'react-native';
+import { TouchableOpacity, Text, StyleSheet, ActivityIndicator as RNActivityIndicator } from 'react-native';
 
-export default function LoadingButton({ title, loading, onPress, disabled, style }) {
+const LoadingButton = ({ isLoading, title, onPress, style, textStyle, ...props }) => {
   return (
-    <TouchableOpacity
-      style={[styles.button, style, loading && { opacity: 0.6 }]}
-      onPress={onPress}
-      disabled={disabled || loading}
-    >
-      {loading ? (
-        <ActivityIndicator size="small" color="#fff" />
+    <TouchableOpacity style={[styles.button, style]} onPress={onPress} disabled={isLoading} {...props}>
+      {isLoading ? (
+        <RNActivityIndicator color="#fff" />
       ) : (
-        <Text style={styles.text}>{title}</Text>
+        <Text style={[styles.text, textStyle]}>{title}</Text>
       )}
     </TouchableOpacity>
   );
-}
+};
 
 const styles = StyleSheet.create({
   button: {
     backgroundColor: '#007AFF',
     paddingVertical: 14,
-    borderRadius: 8,
+    paddingHorizontal: 20,
+    borderRadius: 28,
     alignItems: 'center',
+    justifyContent: 'center',
+    height: 54,
   },
   text: {
     color: '#fff',
+    fontSize: 18,
     fontWeight: '600',
-    fontSize: 16,
   },
 });
+
+export default LoadingButton;

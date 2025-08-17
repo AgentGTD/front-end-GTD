@@ -4,11 +4,13 @@ import * as Google from "expo-auth-session/providers/google";
 import { GoogleAuthProvider, signInWithCredential } from "firebase/auth";
 import { auth } from "../../utils/firebase";
 
-const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
+const GOOGLE_CLIENT_ID_ANDROID = process.env.GOOGLE_CLIENT_ID_ANDROID;
+//const GOOGLE_CLIENT_ID_IOS = process.env.GOOGLE_CLIENT_ID_IOS;
+//const GOOGLE_CLIENT_ID_WEB = process.env.GOOGLE_CLIENT_ID_WEB;
 
 export default function GoogleSignInButton() {
-  const [ response, promptAsync] = Google.useIdTokenAuthRequest({
-    clientId: `${GOOGLE_CLIENT_ID}.apps.googleusercontent.com`,
+  const [request, response, promptAsync] = Google.useIdTokenAuthRequest({
+    clientId: GOOGLE_CLIENT_ID_ANDROID,
   });
 
   React.useEffect(() => {
@@ -20,13 +22,19 @@ export default function GoogleSignInButton() {
   }, [response]);
 
   return (
-    <TouchableOpacity style={styles.button} onPress={() => promptAsync()}>
-       <Image
-         source={require("../../assets/google.png")}
-         style={styles.icon}
-         resizeMode="contain"
-       />
-      <Text style={[styles.text, { color: "#000" }]}>Continue with Google</Text>
+    <TouchableOpacity
+      style={styles.button}
+      disabled={!request}
+      onPress={() => promptAsync()}
+    >
+      <Image
+        source={require("../../assets/google.png")}
+        style={styles.icon}
+        resizeMode="contain"
+      />
+      <Text style={[styles.text, { color: "#000" }]}>
+        Continue with Google
+      </Text>
     </TouchableOpacity>
   );
 }

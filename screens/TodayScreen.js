@@ -57,6 +57,19 @@ const TodayScreen = () => {
   );
 }
 
+  if (state.loading) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.headerRow}>
+          <Text style={styles.header}>Today</Text>
+        </View>
+        <SkeletonTask />
+        <SkeletonTask />
+        <SkeletonTask />
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
       <View style={styles.headerRow}>

@@ -5,6 +5,7 @@ import { useNavigation } from '@react-navigation/native';
 import FAB from '../components/FAB';
 import { useChatBot } from '../context/ChatBotContext';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import SkeletonTask from '../components/Loaders/SkeletonTask';
 
 
 
@@ -63,6 +64,19 @@ const ProjectScreen = () => {
       </TouchableOpacity>
     );
   };
+
+  if (state.loading) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.headerRow}>
+          <Text style={styles.header}>My Projects</Text>
+        </View>
+        <SkeletonTask />
+        <SkeletonTask />
+        <SkeletonTask />
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>

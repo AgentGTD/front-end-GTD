@@ -6,10 +6,12 @@ import { signInWithEmailAndPassword } from "firebase/auth";
 import { auth } from "../utils/firebase";
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { validateEmail, validatePassword } from '../utils/validation';
+import LoadingButton from "../components/Loaders/LoadingButton";
+import { useAuthFeedback } from "../context/AuthFeedbackContext";
 
 export default function LoginScreen() {
   const navigation = useNavigation();
-  const { setUser } = useContext(AuthContext);
+  const { setUser, profile } = useContext(AuthContext);
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -19,6 +21,7 @@ export default function LoginScreen() {
   const [passwordFocused, setPasswordFocused] = useState(false);
   const emailInputRef = useRef(null);
   const passwordInputRef = useRef(null);
+  const { showAuthFeedback } = useAuthFeedback();
 
   const isEmailValid = validateEmail(email);
   const isPasswordValid = validatePassword(password);
@@ -26,20 +29,27 @@ export default function LoginScreen() {
 
   const handleLogin = async () => {
     if (!email || !password) {
-      Alert.alert("Error", "Please enter email and password.");
+      showAuthFeedback("Error", "Please enter email and password.");
       return;
     }
     setLoading(true);
     try {
       const userCred = await signInWithEmailAndPassword(auth, email.trim(), password);
       if (!userCred.user.emailVerified) {
-        Alert.alert("Email not verified", "Please verify your email before logging in.");
-        navigation.navigate("EmailVerify");
+        showAuthFeedback("Email not verified", "Please verify your email before logging in.");
+        navigation.navigate("EmailVerification");
         return;
       }
+      
+      /*
+      if(!profile?.profileComplete) {
+        navigation.navigate("ProfileSetup");
+        return;
+      } 
+        */
       setUser(userCred.user);
     } catch (error) {
-      Alert.alert("Login Failed", error.message);
+      showAuthFeedback("Login Failed", error.message);
     } finally {
       setLoading(false);
     }
@@ -120,18 +130,17 @@ export default function LoginScreen() {
             </TouchableOpacity>
           </View>
         </View>
-        <TouchableOpacity
+        <LoadingButton
           style={[
             styles.loginBtn,
-            (loading || !isFormValid) && { opacity: 0.7, backgroundColor: '#77afeaff' },
-            isFormValid && !loading && { backgroundColor: '#007AFF' }
+            (!isFormValid) && { opacity: 0.5, backgroundColor: '#77afeaff' },
           ]}
           onPress={handleLogin}
-          disabled={loading || !isFormValid}
+          disabled={!isFormValid}
+          isLoading={loading}
+          title="Log in"
           accessibilityLabel="Log in"
-        >
-          <Text style={styles.loginText}>Log in</Text>
-        </TouchableOpacity>
+        />
         <TouchableOpacity onPress={() => navigation.navigate("ResetPassword")}>
           <Text style={styles.forgotText}>Forgot your password?</Text>
         </TouchableOpacity>

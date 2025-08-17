@@ -9,6 +9,7 @@ import TaskDetailModal from '../components/TaskDetailModal';
 import TaskCard from '../components/TaskCard';
 import MenuComponent from '../components/MenuComponent';
 import { useSnackbar } from '../context/SnackBarContext'; 
+import SkeletonTask from '../components/Loaders/SkeletonTask';
 
 const InboxScreen = () => {
   const { state, stateRef, toggleComplete, moveTo } = useTaskContext();
@@ -67,6 +68,19 @@ const InboxScreen = () => {
     setSelectedTask(item);
     setDetailModalVisible(true);
   };
+
+  if (state.loading) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.headerRow}>
+          <Text style={styles.header}>Inbox</Text>
+        </View>
+        <SkeletonTask />
+        <SkeletonTask />
+        <SkeletonTask />
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>

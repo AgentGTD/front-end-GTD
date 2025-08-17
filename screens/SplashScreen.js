@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Image, StyleSheet } from 'react-native';
+import { View, Image, StyleSheet, ActivityIndicator } from 'react-native';
 
 export default function SplashScreen() {
   return (
@@ -9,6 +9,7 @@ export default function SplashScreen() {
         style={styles.logo}
         resizeMode="contain"
       />
+      <ActivityIndicator size="large" color="#007AFF" style={styles.indicator} />
     </View>
   );
 }
@@ -21,7 +22,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   logo: {
-    width: 600,
-    height: 600,
+    width: 400,
+    height: 400,
+  },
+  indicator: {
+    position: 'absolute',
+    bottom: 80,
   },
 });

@@ -16,6 +16,7 @@ import AppNavigator from './navigation/AppNavigator';
 //import ProfileSetupScreen from './screens/ProfileSetupScreen';
 //import EmailVerificationScreen from './screens/EmailVerificationScreen';
 import { LoadingProvider } from './context/LoadingContext';
+import { AuthFeedbackProvider } from './context/AuthFeedbackContext';
 
 // Create a root stack navigator
 const RootStack = createStackNavigator();
@@ -31,7 +32,7 @@ function RootNavigator() {
   return (
     <>
       <RootStack.Navigator screenOptions={{ headerShown: false }}>
-        { !user &&  !user?.emailVerified && !profile?.profileComplete? (
+        { !user ||  !user?.emailVerified ? (
           <RootStack.Screen name="Auth" component={AuthNavigator} />
         ) :  (
           <RootStack.Screen name="App" component={AppNavigator} />
@@ -51,14 +52,16 @@ export default function App() {
           <ChatBotProvider>
             <SnackbarProvider>
               <LoadingProvider>
-               <NavigationContainer>
-                 <View style={{
-                   height: Platform.OS === 'android' ? RNStatusBar.currentHeight : Constants.statusBarHeight,
-                   backgroundColor: '#f6f8fa',
-                 }} />
-                 <RNStatusBar barStyle="dark-content" translucent backgroundColor="transparent" />
-                 <RootNavigator />
-               </NavigationContainer>
+                <AuthFeedbackProvider>
+                  <NavigationContainer>
+                    <View style={{
+                      height: Platform.OS === 'android' ? RNStatusBar.currentHeight : Constants.statusBarHeight,
+                      backgroundColor: '#f6f8fa',
+                    }} />
+                    <RNStatusBar barStyle="dark-content" translucent backgroundColor="transparent" />
+                    <RootNavigator />
+                  </NavigationContainer>
+                </AuthFeedbackProvider>
               </LoadingProvider>
             </SnackbarProvider>
           </ChatBotProvider>

@@ -18,10 +18,13 @@ import { updateProfile } from "firebase/auth";
 import { useNavigation } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
 import { AuthContext } from '../context/AuthContext';
+import LoadingButton from "../components/Loaders/LoadingButton";
+import { useAuthFeedback } from "../context/AuthFeedbackContext";
 
 export default function ProfileSetupScreen() {
   const navigation = useNavigation();
   const { uploadImageToCloudinary, completeProfile } = useContext(AuthContext);
+  const { showAuthFeedback } = useAuthFeedback();
   const [name, setName] = useState(auth.currentUser?.displayName || "");
   const [photo, setPhoto] = useState(auth.currentUser?.photoURL || null);
   const [loading, setLoading] = useState(false);
@@ -48,13 +51,13 @@ export default function ProfileSetupScreen() {
         setPhoto(uri);
       }
     } catch (error) {
-      Alert.alert("Error", "Failed to select image: " + error.message);
+      showAuthFeedback("Error", "Failed to select image: " + error.message);
     }
   };
 
   const handleContinue = async () => {
     if (!name.trim()) {
-      Alert.alert("Error", "Please enter your name.");
+      showAuthFeedback("Error", "Please enter your name.");
       return;
     }
 
@@ -71,7 +74,7 @@ export default function ProfileSetupScreen() {
           }
         } catch (uploadError) {
           console.error("Image upload failed:", uploadError);
-          Alert.alert(
+          showAuthFeedback(
             "Upload Failed", 
             "Could not upload your profile picture. Please try again."
           );
@@ -92,7 +95,7 @@ export default function ProfileSetupScreen() {
         createdAt: new Date().toISOString()
       });
 
-      Alert.alert("Success", "Profile updated!");
+      showAuthFeedback("Success", "Profile updated!", "success");
       
       // Only navigate if component is still mounted and navigator is ready
       if (mounted.current && navigation.isReady()) {
@@ -101,7 +104,7 @@ export default function ProfileSetupScreen() {
 
     } catch (error) {
       console.error("Profile update error:", error);
-      Alert.alert("Error", error.message || "Failed to complete profile setup");
+      showAuthFeedback("Error", error.message || "Failed to complete profile setup");
     } finally {
       if (mounted.current) {
         setLoading(false);
@@ -167,15 +170,12 @@ export default function ProfileSetupScreen() {
             </View>
           </View>
 
-          <TouchableOpacity
-            style={[styles.continueBtn, loading && { opacity: 0.7 }]}
+          <LoadingButton
+            style={styles.continueBtn}
+            isLoading={loading}
             onPress={handleContinue}
-            disabled={loading}
-          >
-            <Text style={styles.continueText}>
-              {loading ? "Getting Started" : "Start My Journey"}
-            </Text>
-          </TouchableOpacity>
+            title="Start My Journey"
+          />
         </View>
       </KeyboardAvoidingView>
     </SafeAreaView>

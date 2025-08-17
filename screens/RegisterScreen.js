@@ -5,6 +5,8 @@ import { createUserWithEmailAndPassword, sendEmailVerification } from "firebase/
 import { useNavigation } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
 import { validateEmail, validatePassword } from '../utils/validation';
+import LoadingButton from "../components/Loaders/LoadingButton";
+import { useAuthFeedback } from "../context/AuthFeedbackContext";
 
 export default function RegisterScreen() {
   const navigation = useNavigation();
@@ -16,6 +18,7 @@ export default function RegisterScreen() {
   const [passwordFocused, setPasswordFocused] = useState(false);
   const emailInputRef = useRef(null);
   const passwordInputRef = useRef(null);
+  const { showAuthFeedback } = useAuthFeedback();
   
   const isEmailValid = validateEmail(email);
   const isPasswordValid = validatePassword(password);
@@ -23,7 +26,7 @@ export default function RegisterScreen() {
 
   const handleRegister = async () => {
     if (!email || !password) {
-      Alert.alert("Missing fields", "Please fill all fields.");
+      showAuthFeedback("Missing fields", "Please fill all fields.");
       return;
     }
     setLoading(true);
@@ -32,7 +35,7 @@ export default function RegisterScreen() {
       await sendEmailVerification(userCred.user);
       navigation.navigate("EmailVerification");
     } catch (error) {
-      Alert.alert("Registration failed", error.message);
+      showAuthFeedback("Registration failed", error.message);
     } finally {
       setLoading(false);
     }
@@ -113,18 +116,17 @@ export default function RegisterScreen() {
             </TouchableOpacity>
           </View>
         </View>
-          <TouchableOpacity
+          <LoadingButton
             style={[
               styles.signupBtn,
-              (loading || !isFormValid) && { opacity: 0.7, backgroundColor: '#77afeaff' },
-              isFormValid && !loading && { backgroundColor: '#007AFF' }
+              !isFormValid && { opacity: 0.5, backgroundColor: '#77afeaff' },
             ]}
             onPress={handleRegister}
-            disabled={loading || !isFormValid}
-            accessibilityLabel="Log in"
-          >
-            <Text style={styles.signupText}>Sign up</Text>
-          </TouchableOpacity>
+            disabled={!isFormValid}
+            isLoading={loading}
+            title="Sign up"
+            accessibilityLabel="Sign up"
+          />
       </View>
     </SafeAreaView>
   );

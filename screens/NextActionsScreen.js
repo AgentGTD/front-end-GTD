@@ -7,6 +7,7 @@ import { Ionicons } from '@expo/vector-icons';
 import TaskCard from '../components/TaskCard'; 
 import TaskDetailModal from '../components/TaskDetailModal';
 import { useSnackbar } from '../context/SnackBarContext'; 
+import SkeletonTask from '../components/Loaders/SkeletonTask';
 
 
 const NextActionScreen = ({ navigation }) => {
@@ -154,6 +155,21 @@ const renderProject = ({ item }) => {
          </TouchableOpacity>
        );
      };
+
+  if (state.loading) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.headerRow}>
+          <Ionicons name="at-circle" size={34} color="#1976d2" style={{ marginRight: 8, marginTop: 2 }} />
+          <Text style={styles.header}>Next Actions</Text>
+        </View>
+        <View style={styles.searchBar} />
+        <SkeletonTask />
+        <SkeletonTask />
+        <SkeletonTask />
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>

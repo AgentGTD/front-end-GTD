@@ -1,52 +1,63 @@
-import React, { useContext } from 'react';
-import { View, ActivityIndicator, StyleSheet, Text } from 'react-native';
-import { AuthContext } from '../../context/AuthContext';
-import { Ionicons } from '@expo/vector-icons';
+import React, { useEffect, useState, useRef } from 'react';
+import {  Text, StyleSheet, Animated, Easing } from 'react-native';
+import { useNetInfo } from '@react-native-community/netinfo';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-export default function InternetIndicator() {
-  const { loading, isConnected } = useContext(AuthContext);
+const InternetIndicator = () => {
+  const netInfo = useNetInfo();
+  const insets = useSafeAreaInsets();
+  const [isVisible, setIsVisible] = useState(false);
+  const slideAnim = useRef(new Animated.Value(-100)).current;
 
-  if (!loading && isConnected) return null;
+  useEffect(() => {
+    const isOffline = netInfo.isInternetReachable === false;
+    if (isOffline) {
+      setIsVisible(true);
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 300,
+        easing: Easing.out(Easing.ease),
+        useNativeDriver: true,
+      }).start();
+    } else {
+      Animated.timing(slideAnim, {
+        toValue: -100,
+        duration: 300,
+        easing: Easing.in(Easing.ease),
+        useNativeDriver: true,
+      }).start(() => setIsVisible(false));
+    }
+  }, [netInfo.isInternetReachable, slideAnim]);
+
+  if (!isVisible) {
+    return null;
+  }
 
   return (
-    <View style={styles.overlay}>
-      <View style={styles.box}>
-        {isConnected ? (
-          <>
-            <ActivityIndicator size="large" color="#fff" />
-            <Text style={styles.text}>Getting your tasks ready</Text>
-          </>
-        ) : (
-          <>
-            <Ionicons name="wifi-off" size={30} color="#fff" />
-            <Text style={styles.text}>No Internet Connection</Text>
-          </>
-        )}
-      </View>
-    </View>
+    <Animated.View style={[
+      styles.container,
+      { top: insets.top, transform: [{ translateY: slideAnim }] },
+    ]}>
+      <Text style={styles.text}>No Internet Connection</Text>
+    </Animated.View>
   );
-}
+};
 
 const styles = StyleSheet.create({
-  overlay: {
+  container: {
     position: 'absolute',
-    top: 0, left: 0, right: 0, bottom: 0,
-    backgroundColor: 'rgba(0,0,0,0.4)',
-    justifyContent: 'center',
+    left: 0,
+    right: 0,
+    backgroundColor: '#007AFF',
+    padding: 12,
     alignItems: 'center',
-    zIndex: 1000,
-  },
-  box: {
-    backgroundColor: '#333',
-    padding: 20,
-    borderRadius: 10,
-    alignItems: 'center',
-    maxWidth: '80%',
+    zIndex: 9999,
   },
   text: {
     color: '#fff',
-    marginTop: 10,
-    fontSize: 16,
-    textAlign: 'center',
+    fontWeight: '600',
+    fontSize: 14,
   },
 });
+
+export default InternetIndicator;

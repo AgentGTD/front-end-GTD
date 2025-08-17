@@ -1,30 +1,19 @@
-// screens/AccountScreen.js
 import React, { useContext, useState } from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  Image,
-  TouchableOpacity,
-  SafeAreaView,
-  Modal,
-  TextInput,
-  Alert,
-  ActivityIndicator,
-  Dimensions,
-  Platform,
-} from "react-native";
+import { View, Text, StyleSheet, Image, TouchableOpacity, SafeAreaView, Modal, TextInput, Alert, ActivityIndicator, Dimensions, Platform } from "react-native";
 import { AuthContext } from "../context/AuthContext";
 import { auth } from "../utils/firebase";
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import { updateProfile } from "firebase/auth";
+import LoadingButton from "../components/Loaders/LoadingButton";
+import { useAuthFeedback } from "../context/AuthFeedbackContext";
 
 const { width, height } = Dimensions.get("window");
 
 export default function AccountScreen({ navigation }) {
   const { user, logout, uploadImageToCloudinary, completeProfile } =
     useContext(AuthContext);
+  const { showAuthFeedback } = useAuthFeedback();
 
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
   const [nameModalVisible, setNameModalVisible] = useState(false);
@@ -43,7 +32,7 @@ export default function AccountScreen({ navigation }) {
     try {
       await logout();
     } catch (err) {
-      Alert.alert("Error", "Failed to log out. " + (err?.message || ""));
+      showAuthFeedback("Error", "Failed to log out. " + (err?.message || ""));
     } finally {
       setLogoutModalVisible(false);
     }
@@ -53,7 +42,7 @@ export default function AccountScreen({ navigation }) {
     try {
       const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (!permission.granted) {
-        Alert.alert(
+        showAuthFeedback(
           "Permission required",
           "Please allow access to your photos to change your profile picture."
         );
@@ -87,30 +76,30 @@ export default function AccountScreen({ navigation }) {
             await completeProfile({ photoURL: secureUrl });
           }
 
-          Alert.alert("Success", "Profile picture updated.");
+          showAuthFeedback("Success", "Profile picture updated.", "success");
         } else {
           // Fallback: update local uri directly on auth profile (not persisted in Cloudinary)
           await updateProfile(auth.currentUser, { photoURL: uri });
           if (typeof completeProfile === "function") {
             await completeProfile({ photoURL: uri });
           }
-          Alert.alert("Success", "Profile picture updated locally.");
+          showAuthFeedback("Success", "Profile picture updated locally.", "success");
         }
       } catch (err) {
         console.error("Avatar update error:", err);
-        Alert.alert("Error", "Failed to update avatar: " + (err?.message || err));
+        showAuthFeedback("Error", "Failed to update avatar: " + (err?.message || err));
       } finally {
         setUploadingAvatar(false);
       }
     } catch (error) {
       console.error("Pick image error:", error);
-      Alert.alert("Error", "Failed to pick image: " + (error?.message || ""));
+      showAuthFeedback("Error", "Failed to pick image: " + (error?.message || ""));
     }
   };
 
   const updateName = async () => {
     if (!newName.trim()) {
-      Alert.alert("Invalid Name", "Name cannot be empty");
+      showAuthFeedback("Invalid Name", "Name cannot be empty");
       return;
     }
 
@@ -125,10 +114,10 @@ export default function AccountScreen({ navigation }) {
       }
 
       setNameModalVisible(false);
-      Alert.alert("Success", "Name updated successfully!");
+      showAuthFeedback("Success", "Name updated successfully!", "success");
     } catch (error) {
       console.error("Name update error:", error);
-      Alert.alert("Error", "Failed to update name: " + (error?.message || ""));
+      showAuthFeedback("Error", "Failed to update name: " + (error?.message || ""));
     } finally {
       setSavingName(false);
     }
@@ -140,7 +129,7 @@ export default function AccountScreen({ navigation }) {
       // Attempt to delete auth user. Note: may require recent login.
       await auth.currentUser.delete();
 
-      Alert.alert("Account Deleted", "Your account has been permanently deleted.");
+      showAuthFeedback("Account Deleted", "Your account has been permanently deleted.", "success");
       // After deletion, sign out and navigate to Entry
       try {
         await logout();
@@ -162,7 +151,7 @@ export default function AccountScreen({ navigation }) {
       const msg =
         error?.message ||
         "Failed to delete account. You may need to sign in again to delete your account.";
-      Alert.alert("Error", msg);
+      showAuthFeedback("Error", msg);
     } finally {
       setIsDeleting(false);
       setDeleteModalVisible(false);
@@ -267,23 +256,19 @@ export default function AccountScreen({ navigation }) {
             />
             <View style={styles.modalButtonRow}>
               <TouchableOpacity
-                style={styles.modalButton}
+                style={[styles.modalButton, styles.cancelButton]}
                 onPress={() => setNameModalVisible(false)}
                 disabled={savingName}
               >
                 <Text style={styles.modalButtonText}>Cancel</Text>
               </TouchableOpacity>
-              <TouchableOpacity
+              <LoadingButton
                 style={[styles.modalButton, styles.modalPrimaryButton]}
+                textStyle={[styles.modalButtonText, { color: "#fff" }]}
                 onPress={updateName}
-                disabled={savingName}
-              >
-                {savingName ? (
-                  <ActivityIndicator color="#fff" />
-                ) : (
-                  <Text style={[styles.modalButtonText, { color: "#fff" }]}>OK</Text>
-                )}
-              </TouchableOpacity>
+                isLoading={savingName}
+                title="OK"
+              />
             </View>
           </View>
         </View>
@@ -315,17 +300,13 @@ export default function AccountScreen({ navigation }) {
                 <Text style={styles.modalButtonText}>Cancel</Text>
               </TouchableOpacity>
 
-              <TouchableOpacity
+              <LoadingButton
                 style={[styles.modalButton, styles.deleteConfirmButton]}
+                textStyle={[styles.modalButtonText, { color: "#fff" }]}
                 onPress={confirmDeleteAccount}
-                disabled={isDeleting}
-              >
-                {isDeleting ? (
-                  <ActivityIndicator />
-                ) : (
-                  <Text style={[styles.modalButtonText, { color: "#EA4335" }]}>Delete Account</Text>
-                )}
-              </TouchableOpacity>
+                isLoading={isDeleting}
+                title="Delete Account"
+              />
             </View>
           </View>
         </View>
@@ -344,7 +325,7 @@ export default function AccountScreen({ navigation }) {
             <Text style={styles.modalText}>Are you sure you want to log out?</Text>
             <View style={styles.modalButtonRow}>
               <TouchableOpacity
-                style={styles.modalButton}
+                style={[styles.modalButton, styles.cancelButton]}
                 onPress={() => setLogoutModalVisible(false)}
               >
                 <Text style={styles.modalButtonText}>Cancel</Text>
@@ -545,6 +526,7 @@ const styles = StyleSheet.create({
     padding: 12,
     borderRadius: 8,
     alignItems: "center",
+    justifyContent: "center",
     marginHorizontal: 6,
     borderWidth: 1,
     borderColor: "#ddd",
@@ -556,7 +538,11 @@ const styles = StyleSheet.create({
   },
   deleteConfirmButton: {
     borderColor: "#EA4335",
+    backgroundColor: "#EA4335",
     borderWidth: 1,
+    borderRadius: 8,
+    alignItems: "center",
+    justifyContent: "center",
   },
   cancelButton: {
     backgroundColor: "#f0f0f0",

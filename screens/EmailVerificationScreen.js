@@ -1,19 +1,12 @@
 import React, { useEffect, useState, useRef, useContext } from "react";
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-  Image,
-  Linking,
-  Alert,
-  SafeAreaView,
-  Dimensions,
-} from "react-native";
+import { View, Text, TouchableOpacity, StyleSheet, Image, Linking, Alert,
+ SafeAreaView, Dimensions } from "react-native";
 import { auth } from "../utils/firebase";
 import { useIsFocused, useNavigation } from "@react-navigation/native";
 import { AuthContext } from "../context/AuthContext";
 import {  sendEmailVerification } from "firebase/auth";
+import LoadingButton from "../components/Loaders/LoadingButton";
+import { useAuthFeedback } from "../context/AuthFeedbackContext";
 
 const { width, height } = Dimensions.get("window");
 
@@ -25,6 +18,7 @@ export default function EmailVerificationScreen() {
   const [checking, setChecking] = useState(false);
   const mounted = useRef(true);
   const { reloadUser } = useContext(AuthContext);
+  const { showAuthFeedback } = useAuthFeedback();
 
   useEffect(() => {
     return () => {
@@ -74,12 +68,12 @@ export default function EmailVerificationScreen() {
       const user = auth.currentUser;
       if (user) {
        await sendEmailVerification(user);
-        Alert.alert("Verification email sent", "Check your inbox.");
+        showAuthFeedback("Verification email sent", "Check your inbox.", "success");
       } else {
-        Alert.alert("Error", "User not found or cannot send verification email.");
+        showAuthFeedback("Error", "User not found or cannot send verification email.");
       }
     } catch (error) {
-      Alert.alert("Error", error.message);
+      showAuthFeedback("Error", error.message);
     } finally {
       if (mounted.current) {
         setLoading(false);
@@ -98,11 +92,12 @@ export default function EmailVerificationScreen() {
         }
       }
       if (!auth.currentUser.emailVerified) {
-        Alert.alert("Not verified", "Your email is still not verified.");
+        showAuthFeedback("Not verified", "Your email is still not verified.");
       }
     } catch (error) {
-      Alert.alert("Error", error.message);
-    } finally {
+      showAuthFeedback("Error", error.message);
+    }
+    finally {
       if (mounted.current) {
         setChecking(false);
       }
@@ -140,34 +135,22 @@ export default function EmailVerificationScreen() {
           >
             <Text style={styles.primaryBtnText}>Open email</Text>
           </TouchableOpacity>
-          <TouchableOpacity
-            style={[
-              styles.button,
-              styles.outlineBtn,
-              loading && { opacity: 0.7 },
-            ]}
+          <LoadingButton
+            style={[styles.button, styles.outlineBtn]}
+            textStyle={styles.outlineBtnText}
+            isLoading={loading}
             onPress={resendVerificationEmail}
-            disabled={loading}
+            title="Resend email"
             accessibilityLabel="Resend verification email"
-            activeOpacity={0.8}
-          >
-            <Text style={styles.outlineBtnText}>Resend email</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[
-              styles.button,
-              styles.outlineBtn,
-              checking && { opacity: 0.7 },
-            ]}
+          />
+          <LoadingButton
+            style={[styles.button, styles.outlineBtn]}
+            textStyle={styles.outlineBtnText}
+            isLoading={checking}
             onPress={refreshVerification}
-            disabled={checking}
+            title="Already verified? Refresh"
             accessibilityLabel="Refresh verification status"
-            activeOpacity={0.8}
-          >
-            <Text style={styles.outlineBtnText}>
-              Already verified? Refresh
-            </Text>
-          </TouchableOpacity>
+          />
           <TouchableOpacity
             style={[styles.button, styles.outlineBtn]}
             onPress={changeAccount}

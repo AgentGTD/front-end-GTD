@@ -17,6 +17,8 @@ import { auth } from "../utils/firebase";
 import { useNavigation } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
 import { validatePassword } from "../utils/validation";
+import LoadingButton from "../components/Loaders/LoadingButton";
+import { useAuthFeedback } from "../context/AuthFeedbackContext";
 
 export default function ChangePasswordScreen() {
   const navigation = useNavigation();
@@ -36,6 +38,8 @@ export default function ChangePasswordScreen() {
   const newRef = useRef(null);
   const confirmRef = useRef(null);
 
+  const { showAuthFeedback } = useAuthFeedback();
+
   const isFormValid =
     currentPassword.trim() &&
     newPassword.trim() &&
@@ -46,12 +50,12 @@ export default function ChangePasswordScreen() {
 
   const handleChangePassword = async () => {
     if (!isFormValid) {
-      Alert.alert("Error", "Please fill all fields correctly.");
+      showAuthFeedback("Error", "Please fill all fields correctly.");
       return;
     }
 
     if (newPassword.length < 6) {
-      Alert.alert("Error", "Password must be at least 6 characters.");
+      showAuthFeedback("Error", "Password must be at least 6 characters.");
       return;
     }
 
@@ -66,12 +70,11 @@ export default function ChangePasswordScreen() {
       // Update password
       await updatePassword(user, newPassword);
 
-      Alert.alert("Success", "Your password has been updated.", [
-        { text: "OK", onPress: () => navigation.goBack() },
-      ]);
+      showAuthFeedback("Success", "Your password has been updated.", "success");
+      navigation.goBack();
     } catch (error) {
       console.error(error);
-      Alert.alert("Error", "Current password is incorrect.");
+      showAuthFeedback("Error", "Current password is incorrect.");
       setCurrentPassword("");
       setNewPassword("");
       setConfirmPassword("");
@@ -179,18 +182,13 @@ export default function ChangePasswordScreen() {
            Your password must be at least 8 characters long. Avoid the common pattrens.
         </Text>
 
-        <TouchableOpacity
-          style={[
-            styles.button,
-            (!isFormValid || loading) && { opacity: 0.6 },
-          ]}
+        <LoadingButton
+          style={[!isFormValid && { opacity: 0.6 }]}
           onPress={handleChangePassword}
-          disabled={!isFormValid || loading}
-        >
-          <Text style={styles.buttonText}>
-            {loading ? "Updating..." : "Change Password"}
-          </Text>
-        </TouchableOpacity>
+          disabled={!isFormValid}
+          isLoading={loading}
+          title="Change Password"
+        />
 
         <TouchableOpacity
           style={styles.backBtn}
