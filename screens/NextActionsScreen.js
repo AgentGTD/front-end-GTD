@@ -305,15 +305,15 @@ export default NextActionScreen;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 16,
-    paddingVertical: 12,
+    paddingHorizontal: 16,
     backgroundColor: '#f6f8fa',
   
   },
   headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 10,
+    paddingVertical: 15,
+    marginBottom: 1,
   },
   header: {
     fontSize: 24,

@@ -162,8 +162,7 @@ export default ProjectScreen;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 18,
-    paddingVertical: 12,
+    paddingHorizontal: 16,
     backgroundColor: '#f6f8fa',
     
   },
@@ -171,11 +170,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 18,
-
+    paddingVertical: 15,
   },
   header: {
     fontSize: 24,
-    fontWeight: 'bold',
+    fontWeight: '700',
     color: '#222',
     flex: 1,
     

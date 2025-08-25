@@ -7,6 +7,7 @@ import { AuthContext } from "../context/AuthContext";
 import {  sendEmailVerification } from "firebase/auth";
 import LoadingButton from "../components/Loaders/LoadingButton";
 import { useAuthFeedback } from "../context/AuthFeedbackContext";
+import { getErrorMessage, getErrorTitle } from "../utils/errorHandler";
 
 const { width, height } = Dimensions.get("window");
 
@@ -16,8 +17,9 @@ export default function EmailVerificationScreen() {
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState(auth.currentUser?.email || "");
   const [checking, setChecking] = useState(false);
+  const [changing, setChanging] = useState(false);
   const mounted = useRef(true);
-  const { reloadUser } = useContext(AuthContext);
+  const { reloadUser, logout } = useContext(AuthContext);
   const { showAuthFeedback } = useAuthFeedback();
 
   useEffect(() => {
@@ -70,10 +72,14 @@ export default function EmailVerificationScreen() {
        await sendEmailVerification(user);
         showAuthFeedback("Verification email sent", "Check your inbox.", "success");
       } else {
-        showAuthFeedback("Error", "User not found or cannot send verification email.");
+        const errorTitle = getErrorTitle('auth');
+        const errorMessage = "User not found or cannot send verification email.";
+        showAuthFeedback(errorTitle, errorMessage);
       }
     } catch (error) {
-      showAuthFeedback("Error", error.message);
+      const errorTitle = getErrorTitle('auth');
+      const errorMessage = getErrorMessage(error, 'auth');
+      showAuthFeedback(errorTitle, errorMessage);
     } finally {
       if (mounted.current) {
         setLoading(false);
@@ -95,7 +101,9 @@ export default function EmailVerificationScreen() {
         showAuthFeedback("Not verified", "Your email is still not verified.");
       }
     } catch (error) {
-      showAuthFeedback("Error", error.message);
+      const errorTitle = getErrorTitle('auth');
+      const errorMessage = getErrorMessage(error, 'auth');
+      showAuthFeedback(errorTitle, errorMessage);
     }
     finally {
       if (mounted.current) {
@@ -105,7 +113,20 @@ export default function EmailVerificationScreen() {
   };
 
   const changeAccount = async () => {
-    await auth.signOut();
+    if (!mounted.current) return;
+    setChanging(true);
+    try {
+      await logout();
+      if (mounted.current) {
+        navigation.reset({ index: 0, routes: [{ name: "Entry" }] });
+      }
+    } catch (error) {
+      const errorTitle = getErrorTitle('auth');
+      const errorMessage = getErrorMessage(error, 'auth');
+      showAuthFeedback(errorTitle, errorMessage);
+    } finally {
+      if (mounted.current) setChanging(false);
+    }
   };
 
   return (
@@ -151,14 +172,14 @@ export default function EmailVerificationScreen() {
             title="Already verified? Refresh"
             accessibilityLabel="Refresh verification status"
           />
-          <TouchableOpacity
+          <LoadingButton
             style={[styles.button, styles.outlineBtn]}
+            textStyle={styles.outlineBtnText}
+            isLoading={changing}
             onPress={changeAccount}
+            title="Change account"
             accessibilityLabel="Change account"
-            activeOpacity={0.8}
-          >
-            <Text style={styles.outlineBtnText}>Change account</Text>
-          </TouchableOpacity>
+          />
         </View>
       </View>
     </SafeAreaView>
@@ -171,7 +192,7 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     paddingHorizontal: width * 0.06,
-    paddingTop: height * 0.03,
+    paddingVertical: height * 0.03,
     width: "100%",
   },
   title: {
@@ -200,8 +221,8 @@ const styles = StyleSheet.create({
   },
   illustration: {
     width: width * 0.7,
-    height: width * 0.75,
-    marginBottom: 22,
+    height: width * 0.65,
+    marginBottom: 12,
   },
   buttonGroup: {
     width: "100%",

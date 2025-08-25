@@ -7,6 +7,7 @@ import { validateEmail } from '../utils/validation';
 import { Ionicons } from "@expo/vector-icons";
 import LoadingButton from "../components/Loaders/LoadingButton";
 import { useAuthFeedback } from "../context/AuthFeedbackContext";
+import { getErrorMessage, getErrorTitle } from "../utils/errorHandler";
 
 export default function PasswordResetScreen() {
   const [email, setEmail] = useState("");
@@ -19,7 +20,9 @@ export default function PasswordResetScreen() {
 
   const handleResetPassword = async () => {
     if (!email.trim()) {
-      showAuthFeedback("Error", "Please enter your email.");
+      const errorTitle = getErrorTitle('auth');
+      const errorMessage = "Please enter your email.";
+      showAuthFeedback(errorTitle, errorMessage);
       return;
     }
     setLoading(true);
@@ -32,7 +35,9 @@ export default function PasswordResetScreen() {
       );
       navigation.navigate("Login");
     } catch (error) {
-      showAuthFeedback("Error", error.message);
+      const errorTitle = getErrorTitle('auth');
+      const errorMessage = getErrorMessage(error, 'auth');
+      showAuthFeedback(errorTitle, errorMessage);
     } finally {
       setLoading(false);
     }

@@ -1,3 +1,4 @@
+/*
 import React from "react";
 import { TouchableOpacity, Text, StyleSheet, Image } from "react-native";
 import * as Facebook from "expo-auth-session/providers/facebook";
@@ -49,3 +50,6 @@ const styles = StyleSheet.create({
   icon: { marginRight: 12, width: 30, height: 30 },
   text: { fontSize: 17, fontWeight: "600" },
 });
+*/
+
+

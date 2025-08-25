@@ -1,0 +1,57 @@
+{
+  "cli": {
+    "version": ">= 12.0.0"
+  },
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal",
+      "env": {
+        "NODE_ENV": "development"
+      }
+    },
+    "preview": {
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk"
+      },
+      "env": {
+        "NODE_ENV": "staging"
+      }
+    },
+    "production": {
+      "android": {
+        "buildType": "app-bundle",
+        "gradleCommand": ":app:bundleRelease",
+        "env": {
+          "EXPO_USE_DEV_SERVER": "false"
+        }
+      },
+      "env": {
+        "NODE_ENV": "production",
+        "EXPO_USE_DEV_SERVER": "false"
+      }
+    },
+    "production-with-mapping": {
+      "android": {
+        "buildType": "app-bundle",
+        "gradleCommand": ":app:bundleRelease",
+        "env": {
+          "EXPO_USE_DEV_SERVER": "false"
+        }
+      },
+      "env": {
+        "NODE_ENV": "production",
+        "EXPO_USE_DEV_SERVER": "false"
+      }
+    }
+  },
+  "submit": {
+    "production": {
+      "android": {
+        "serviceAccountKeyPath": "./google-service-account.json",
+        "track": "production"
+      }
+    }
+  }
+}

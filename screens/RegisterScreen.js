@@ -1,5 +1,5 @@
-import React, { useState, useRef } from "react";
-import { View, Text, TextInput, TouchableOpacity, Alert, StyleSheet, SafeAreaView } from "react-native";
+import React, { useState, useRef, useEffect } from "react";
+import { View, Text, TextInput, TouchableOpacity, Alert, StyleSheet, SafeAreaView, BackHandler } from "react-native";
 import { auth } from "../utils/firebase";
 import { createUserWithEmailAndPassword, sendEmailVerification } from "firebase/auth";
 import { useNavigation } from "@react-navigation/native";
@@ -7,6 +7,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { validateEmail, validatePassword } from '../utils/validation';
 import LoadingButton from "../components/Loaders/LoadingButton";
 import { useAuthFeedback } from "../context/AuthFeedbackContext";
+import { getErrorMessage, getErrorTitle } from "../utils/errorHandler";
 
 export default function RegisterScreen() {
   const navigation = useNavigation();
@@ -24,9 +25,20 @@ export default function RegisterScreen() {
   const isPasswordValid = validatePassword(password);
   const isFormValid = isEmailValid && isPasswordValid;
 
+  useEffect(() => {
+    const backAction = () => {
+      navigation.navigate("Entry");
+      return true;
+    };
+    const backHandler = BackHandler.addEventListener('hardwareBackPress', backAction);
+    return () => backHandler.remove();
+  }, [navigation]);
+
   const handleRegister = async () => {
     if (!email || !password) {
-      showAuthFeedback("Missing fields", "Please fill all fields.");
+      const errorTitle = getErrorTitle('auth');
+      const errorMessage = "Please fill all fields.";
+      showAuthFeedback(errorTitle, errorMessage);
       return;
     }
     setLoading(true);
@@ -35,7 +47,9 @@ export default function RegisterScreen() {
       await sendEmailVerification(userCred.user);
       navigation.navigate("EmailVerification");
     } catch (error) {
-      showAuthFeedback("Registration failed", error.message);
+      const errorTitle = getErrorTitle('auth');
+      const errorMessage = getErrorMessage(error, 'auth');
+      showAuthFeedback(errorTitle, errorMessage);
     } finally {
       setLoading(false);
     }
@@ -159,7 +173,7 @@ const styles = StyleSheet.create({
     padding: 4,
   },
   signupBtn: {
-    backgroundColor: "#77afeaff",
+    backgroundColor: "#007AFF",
     borderRadius: 28,
     alignItems: "center",
     justifyContent: "center",

@@ -7,6 +7,7 @@ import * as ImagePicker from "expo-image-picker";
 import { updateProfile } from "firebase/auth";
 import LoadingButton from "../components/Loaders/LoadingButton";
 import { useAuthFeedback } from "../context/AuthFeedbackContext";
+import { getErrorMessage, getErrorTitle } from "../utils/errorHandler";
 
 const { width, height } = Dimensions.get("window");
 
@@ -22,6 +23,8 @@ export default function AccountScreen({ navigation }) {
   const [logoutModalVisible, setLogoutModalVisible] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [savingName, setSavingName] = useState(false);
+  const [optimisticAvatarUrl, setOptimisticAvatarUrl] = useState(null);
+  const [previousAvatarUrl, setPreviousAvatarUrl] = useState(null);
 
   const toggleLogoutModal = () => {
     setLogoutModalVisible((s) => !s);
@@ -32,7 +35,9 @@ export default function AccountScreen({ navigation }) {
     try {
       await logout();
     } catch (err) {
-      showAuthFeedback("Error", "Failed to log out. " + (err?.message || ""));
+      const errorTitle = getErrorTitle('logout');
+      const errorMessage = getErrorMessage(err, 'auth');
+      showAuthFeedback(errorTitle, errorMessage);
     } finally {
       setLogoutModalVisible(false);
     }
@@ -42,10 +47,9 @@ export default function AccountScreen({ navigation }) {
     try {
       const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (!permission.granted) {
-        showAuthFeedback(
-          "Permission required",
-          "Please allow access to your photos to change your profile picture."
-        );
+        const errorTitle = getErrorTitle('avatar');
+        const errorMessage = "Please allow access to your photos to change your profile picture.";
+        showAuthFeedback(errorTitle, errorMessage);
         return;
       }
 
@@ -61,8 +65,16 @@ export default function AccountScreen({ navigation }) {
       const uri = result.assets?.[0]?.uri;
       if (!uri) return;
 
-      // Immediately show loader and upload
+      // Store previous avatar URL for potential rollback
+      const currentAvatarUrl = user?.photoURL;
+      setPreviousAvatarUrl(currentAvatarUrl);
+      
+      // Optimistically show the new image immediately
+      setOptimisticAvatarUrl(uri);
+      
+      // Start upload process in background
       setUploadingAvatar(true);
+      
       try {
         if (typeof uploadImageToCloudinary === "function") {
           const secureUrl = await uploadImageToCloudinary(uri);
@@ -76,6 +88,9 @@ export default function AccountScreen({ navigation }) {
             await completeProfile({ photoURL: secureUrl });
           }
 
+          // Clear optimistic state and show success
+          setOptimisticAvatarUrl(null);
+          setPreviousAvatarUrl(null);
           showAuthFeedback("Success", "Profile picture updated.", "success");
         } else {
           // Fallback: update local uri directly on auth profile (not persisted in Cloudinary)
@@ -83,23 +98,52 @@ export default function AccountScreen({ navigation }) {
           if (typeof completeProfile === "function") {
             await completeProfile({ photoURL: uri });
           }
+          
+          // Clear optimistic state and show success
+          setOptimisticAvatarUrl(null);
+          setPreviousAvatarUrl(null);
           showAuthFeedback("Success", "Profile picture updated locally.", "success");
         }
       } catch (err) {
         console.error("Avatar update error:", err);
-        showAuthFeedback("Error", "Failed to update avatar: " + (err?.message || err));
+        
+        // Rollback to previous avatar on error
+        setOptimisticAvatarUrl(null);
+        if (previousAvatarUrl) {
+          try {
+            await updateProfile(auth.currentUser, { photoURL: previousAvatarUrl });
+            if (typeof completeProfile === "function") {
+              await completeProfile({ photoURL: previousAvatarUrl });
+            }
+          } catch (rollbackError) {
+            console.error("Rollback error:", rollbackError);
+          }
+        }
+        setPreviousAvatarUrl(null);
+        
+        const errorTitle = getErrorTitle('avatar');
+        const errorMessage = getErrorMessage(err, 'upload');
+        showAuthFeedback(errorTitle, errorMessage);
       } finally {
         setUploadingAvatar(false);
       }
     } catch (error) {
       console.error("Pick image error:", error);
-      showAuthFeedback("Error", "Failed to pick image: " + (error?.message || ""));
+      // Clear optimistic state on pick error
+      setOptimisticAvatarUrl(null);
+      setPreviousAvatarUrl(null);
+      
+      const errorTitle = getErrorTitle('avatar');
+      const errorMessage = getErrorMessage(error, 'upload');
+      showAuthFeedback(errorTitle, errorMessage);
     }
   };
 
   const updateName = async () => {
     if (!newName.trim()) {
-      showAuthFeedback("Invalid Name", "Name cannot be empty");
+      const errorTitle = getErrorTitle('name');
+      const errorMessage = "Name cannot be empty. Please enter a valid name.";
+      showAuthFeedback(errorTitle, errorMessage);
       return;
     }
 
@@ -117,7 +161,9 @@ export default function AccountScreen({ navigation }) {
       showAuthFeedback("Success", "Name updated successfully!", "success");
     } catch (error) {
       console.error("Name update error:", error);
-      showAuthFeedback("Error", "Failed to update name: " + (error?.message || ""));
+      const errorTitle = getErrorTitle('name');
+      const errorMessage = getErrorMessage(error, 'profile');
+      showAuthFeedback(errorTitle, errorMessage);
     } finally {
       setSavingName(false);
     }
@@ -147,11 +193,9 @@ export default function AccountScreen({ navigation }) {
       }
     } catch (error) {
       console.error("Delete account error:", error);
-      // If deletion fails because of recent-auth requirement, inform user
-      const msg =
-        error?.message ||
-        "Failed to delete account. You may need to sign in again to delete your account.";
-      showAuthFeedback("Error", msg);
+      const errorTitle = getErrorTitle('delete');
+      const errorMessage = getErrorMessage(error, 'account');
+      showAuthFeedback(errorTitle, errorMessage);
     } finally {
       setIsDeleting(false);
       setDeleteModalVisible(false);
@@ -172,7 +216,9 @@ export default function AccountScreen({ navigation }) {
           <TouchableOpacity onPress={pickImage} style={styles.avatarContainer} activeOpacity={0.8}>
             <Image
               source={
-                user?.photoURL
+                optimisticAvatarUrl
+                  ? { uri: optimisticAvatarUrl }
+                  : user?.photoURL
                   ? { uri: user.photoURL }
                   : require("../assets/default-avatar.png")
               }
@@ -354,7 +400,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     paddingVertical: 8,
-    marginBottom: 8,
+    marginBottom: 4,
   },
   backButton: { padding: 6 },
   header: {
@@ -368,7 +414,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 18,
     alignItems: "center",
-    marginBottom: 14,
+    marginBottom: 10,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.08,
@@ -469,7 +515,8 @@ const styles = StyleSheet.create({
     padding: 14,
     borderRadius: 8,
     alignItems: "center",
-    marginTop: 8,
+    marginTop: 2,
+    marginBottom: 12,
   },
   logoutButtonText: {
     color: "#fff",

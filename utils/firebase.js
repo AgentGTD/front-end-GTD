@@ -2,33 +2,66 @@
 import { initializeApp } from "firebase/app";
 import {  GoogleAuthProvider, initializeAuth, getReactNativePersistence } from "firebase/auth";
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { getStorage } from "firebase/storage";
-import { getFirestore } from "firebase/firestore";
-// TODO: Add SDKs for Firebase products that you want to use
-// https://firebase.google.com/docs/web/setup#available-libraries
+import { getFirestore  } from "firebase/firestore";
 
-// Your web app's Firebase configuration
-// For Firebase JS SDK v7.20.0 and later, measurementId is optional
+// Try to import from @env, with fallbacks for production builds
+let FIREBASE_API_KEY, FIREBASE_AUTH_DOMAIN, FIREBASE_PROJECT_ID, FIREBASE_STORAGE_BUCKET, FIREBASE_MESSAGING_SENDER_ID, FIREBASE_APP_ID, FIREBASE_MEASUREMENT_ID;
+
+try {
+  const env = require('@env');
+  FIREBASE_API_KEY = env.FIREBASE_API_KEY;
+  FIREBASE_AUTH_DOMAIN = env.FIREBASE_AUTH_DOMAIN;
+  FIREBASE_PROJECT_ID = env.FIREBASE_PROJECT_ID;
+  FIREBASE_STORAGE_BUCKET = env.FIREBASE_STORAGE_BUCKET;
+  FIREBASE_MESSAGING_SENDER_ID = env.FIREBASE_MESSAGING_SENDER_ID;
+  FIREBASE_APP_ID = env.FIREBASE_APP_ID;
+  FIREBASE_MEASUREMENT_ID = env.FIREBASE_MEASUREMENT_ID;
+} catch (error) {
+  console.warn('Failed to load environment variables from @env, using fallbacks');
+  // Fallback values for production builds
+  FIREBASE_API_KEY = 'AIzaSyDdB8w-Ww8cE7l_7DB5tCGKGcm3WBPScHI';
+  FIREBASE_AUTH_DOMAIN = 'flowdo-gtd.firebaseapp.com';
+  FIREBASE_PROJECT_ID = 'flowdo-gtd';
+  FIREBASE_STORAGE_BUCKET = 'flowdo-gtd.firebasestorage.app';
+  FIREBASE_MESSAGING_SENDER_ID = '348188214999';
+  FIREBASE_APP_ID = '1:348188214999:web:4f306be9e1d86b2081d292';
+  FIREBASE_MEASUREMENT_ID = 'G-2X3TNY0LJ8';
+}
+
+// Validate Firebase configuration
+if (!FIREBASE_API_KEY || !FIREBASE_AUTH_DOMAIN || !FIREBASE_PROJECT_ID) {
+  throw new Error('Firebase configuration is incomplete. Please check your environment variables.');
+}
+
+// Firebase configuration from environment variables
 const firebaseConfig = {
-  apiKey: "AIzaSyCievzk6UZrLzJJfgt1fAmC_cHpy2bSGVY",
-  authDomain: "flowdo-aa2dc.firebaseapp.com",
-  projectId: "flowdo-aa2dc",
-  storageBucket: "flowdo-aa2dc.firebasestorage.app",
-  messagingSenderId: "113536372032",
-  appId: "1:113536372032:web:0cab2dbb90b4af7fbffea5",
-  measurementId: "G-C6CQ2C965J"
+  apiKey: FIREBASE_API_KEY,
+  authDomain: FIREBASE_AUTH_DOMAIN,
+  projectId: FIREBASE_PROJECT_ID,
+  storageBucket: FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: FIREBASE_MESSAGING_SENDER_ID,
+  appId: FIREBASE_APP_ID,
+  measurementId: FIREBASE_MEASUREMENT_ID
 };
 
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
+// Initialize Firebase with error handling
+let app, auth, googleProvider, db;
 
-//Set up Auth with AsyncStorage for persistence
-const auth = initializeAuth(app, {
-  persistence: getReactNativePersistence(AsyncStorage),
-});
+try {
+  app = initializeApp(firebaseConfig);
+  
+  //Set up Auth with AsyncStorage for persistence
+  auth = initializeAuth(app, {
+    persistence: getReactNativePersistence(AsyncStorage),
+  });
 
-const googleProvider = new GoogleAuthProvider();
-const storage = getStorage(app);
-const db = getFirestore(app);
+  googleProvider = new GoogleAuthProvider();
+  db = getFirestore(app);
+  
+  console.log('✅ Firebase initialized successfully');
+} catch (error) {
+  console.error('❌ Firebase initialization failed:', error);
+  throw new Error(`Firebase initialization failed: ${error.message}`);
+}
 
-export { app, auth, googleProvider, storage, db };
+export { app, auth, googleProvider, db };

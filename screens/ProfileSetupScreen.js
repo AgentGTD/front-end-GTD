@@ -20,6 +20,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { AuthContext } from '../context/AuthContext';
 import LoadingButton from "../components/Loaders/LoadingButton";
 import { useAuthFeedback } from "../context/AuthFeedbackContext";
+import { getErrorMessage, getErrorTitle } from "../utils/errorHandler";
 
 export default function ProfileSetupScreen() {
   const navigation = useNavigation();
@@ -51,13 +52,17 @@ export default function ProfileSetupScreen() {
         setPhoto(uri);
       }
     } catch (error) {
-      showAuthFeedback("Error", "Failed to select image: " + error.message);
+      const errorTitle = getErrorTitle('avatar');
+      const errorMessage = getErrorMessage(error, 'upload');
+      showAuthFeedback(errorTitle, errorMessage);
     }
   };
 
   const handleContinue = async () => {
     if (!name.trim()) {
-      showAuthFeedback("Error", "Please enter your name.");
+      const errorTitle = getErrorTitle('name');
+      const errorMessage = "Please enter your name.";
+      showAuthFeedback(errorTitle, errorMessage);
       return;
     }
 
@@ -74,10 +79,9 @@ export default function ProfileSetupScreen() {
           }
         } catch (uploadError) {
           console.error("Image upload failed:", uploadError);
-          showAuthFeedback(
-            "Upload Failed", 
-            "Could not upload your profile picture. Please try again."
-          );
+          const errorTitle = getErrorTitle('upload');
+          const errorMessage = getErrorMessage(uploadError, 'upload');
+          showAuthFeedback(errorTitle, errorMessage);
           return;
         }
       }
@@ -104,7 +108,9 @@ export default function ProfileSetupScreen() {
 
     } catch (error) {
       console.error("Profile update error:", error);
-      showAuthFeedback("Error", error.message || "Failed to complete profile setup");
+      const errorTitle = getErrorTitle('profile');
+      const errorMessage = getErrorMessage(error, 'profile');
+      showAuthFeedback(errorTitle, errorMessage);
     } finally {
       if (mounted.current) {
         setLoading(false);

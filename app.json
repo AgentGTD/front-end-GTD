@@ -2,33 +2,43 @@
   "expo": {
     "name": "FlowDo",
     "slug": "FlowDo",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "orientation": "portrait",
-    "icon": "./assets/logo.png",
+    "icon": "./assets/logo1.png",
     "userInterfaceStyle": "light",
-    "newArchEnabled": true,
+    "newArchEnabled": false,
     "splash": {
-      "image": "./assets/logo.png",
+      "image": "./assets/logo1.png",
       "resizeMode": "contain",
       "backgroundColor": "#f6f8fa",
       "dark": {
-        "image": "./assets/logo.png",
+        "image": "./assets/logo1.png",
         "backgroundColor": "#222"
       }
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.flowdo.app"
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/logo.png",
+        "foregroundImage": "./assets/logo1.png",
         "backgroundColor": "#f6f8fa"
       },
       "edgeToEdgeEnabled": true,
-      "package": "com.rahul0032.FlowDo"
+      "package": "com.flowdo.app",
+      "versionCode": 2,
+      "permissions": [
+        "android.permission.INTERNET",
+        "android.permission.ACCESS_NETWORK_STATE",
+        "android.permission.CAMERA",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE"
+      ],
+      "allowBackup": false
     },
     "web": {
-      "favicon": "./assets/logo.png"
+      "favicon": "./assets/logo1.png"
     },
     "extra": {
       "eas": {
@@ -36,15 +46,12 @@
       }
     },
     "runtimeVersion": {
-      "policy": "appVersion"
-    },
-    "updates": {
-      "url": "https://u.expo.dev/503bec3b-0709-446e-bae4-5250be8e4497"
+      "policy": "sdkVersion"
     },
     "plugins": [
-      "expo-font"
+      "expo-font",
+      "expo-image-picker"
     ],
     "scheme": "flowdo"
-    
   }
 }

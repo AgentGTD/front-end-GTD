@@ -1,5 +1,5 @@
-import React, { useState, useContext, useRef } from "react";
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, SafeAreaView } from "react-native";
+import React, { useState, useContext, useRef, useEffect } from "react";
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, SafeAreaView, BackHandler } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { AuthContext } from "../context/AuthContext";
 import { signInWithEmailAndPassword } from "firebase/auth";
@@ -8,10 +8,11 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { validateEmail, validatePassword } from '../utils/validation';
 import LoadingButton from "../components/Loaders/LoadingButton";
 import { useAuthFeedback } from "../context/AuthFeedbackContext";
+import { getErrorMessage, getErrorTitle } from "../utils/errorHandler";
 
 export default function LoginScreen() {
   const navigation = useNavigation();
-  const { setUser, profile } = useContext(AuthContext);
+  const { profile } = useContext(AuthContext);
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -27,9 +28,20 @@ export default function LoginScreen() {
   const isPasswordValid = validatePassword(password);
   const isFormValid = isEmailValid && isPasswordValid;
 
+  useEffect(() => {
+    const backAction = () => {
+      navigation.navigate("Entry");
+      return true;
+    };
+    const backHandler = BackHandler.addEventListener('hardwareBackPress', backAction);
+    return () => backHandler.remove();
+  }, [navigation]);
+
   const handleLogin = async () => {
     if (!email || !password) {
-      showAuthFeedback("Error", "Please enter email and password.");
+      const errorTitle = getErrorTitle('auth');
+      const errorMessage = "Please enter email and password.";
+      showAuthFeedback(errorTitle, errorMessage);
       return;
     }
     setLoading(true);
@@ -47,9 +59,10 @@ export default function LoginScreen() {
         return;
       } 
         */
-      setUser(userCred.user);
     } catch (error) {
-      showAuthFeedback("Login Failed", error.message);
+      const errorTitle = getErrorTitle('auth');
+      const errorMessage = getErrorMessage(error, 'auth');
+      showAuthFeedback(errorTitle, errorMessage);
     } finally {
       setLoading(false);
     }

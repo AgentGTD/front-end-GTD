@@ -1,4 +1,4 @@
-const API_BASE_URL = process.env.API_BASE_URL;
+import { API_BASE_URL } from "@env";
 
 // Debug logging for API configuration
 console.log('🔧 API Configuration Debug:');

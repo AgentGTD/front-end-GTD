@@ -48,7 +48,7 @@ const EntryScreen = () => {
         </TouchableOpacity>
 
         <GoogleSignInButton />
-        <FacebookSignInButton />
+       {/* <FacebookSignInButton /> */}
       </View>
 
       {/* Sign Up Link */}
@@ -59,9 +59,9 @@ const EntryScreen = () => {
       {/* Terms & Privacy */}
       <Text style={styles.termsText}>
         By continuing, you acknowledge that you understand and agree to FlowDo's{' '}
-        <Text style={styles.link} onPress={() => Linking.openURL('https://flowdo.com/terms')}>Terms of Service</Text>
+        <Text style={styles.link} onPress={() => Linking.openURL('https://flowdo-web.vercel.app/terms-of-service')}>Terms of Service</Text>
         {' '}and{' '}
-        <Text style={styles.link} onPress={() => Linking.openURL('https://flowdo.com/privacy')}>Privacy Policy</Text>.
+        <Text style={styles.link} onPress={() => Linking.openURL('https://flowdo-web.vercel.app/privacy-policy')}>Privacy Policy</Text>.
       </Text>
     </View>
    </SafeAreaView>
@@ -99,8 +99,8 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   illustration: {
-    width: width * 0.7,
-    height: width * 0.65,
+    width: width * 0.8,
+    height: width * 0.75,
     marginBottom: 10,
   },
   buttonGroup: {

@@ -135,8 +135,8 @@ const ProjectDetailScreen = () => {
         ListEmptyComponent={
           <View style={{ alignItems: 'center', marginTop: 60 }}>
                                               <Image
-                                                source={require('../assets/pds1.png')}
-                                                style={{ width: 350, height: 350, marginBottom: 24, opacity: 0.85, marginTop: -10 }}
+                                                source={require('../assets/pds2.png')}
+                                                style={{ width: 300, height: 300, marginBottom: 24, opacity: 0.85, marginTop: -10 }}
                                                 resizeMode="contain"
                                               />
                                               <Text style={{ fontSize: 18, color: '#333', fontWeight: '600', textAlign: 'center' }}>

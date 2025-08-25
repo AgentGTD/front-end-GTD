@@ -19,6 +19,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { validatePassword } from "../utils/validation";
 import LoadingButton from "../components/Loaders/LoadingButton";
 import { useAuthFeedback } from "../context/AuthFeedbackContext";
+import { getErrorMessage, getErrorTitle } from "../utils/errorHandler";
 
 export default function ChangePasswordScreen() {
   const navigation = useNavigation();
@@ -50,12 +51,16 @@ export default function ChangePasswordScreen() {
 
   const handleChangePassword = async () => {
     if (!isFormValid) {
-      showAuthFeedback("Error", "Please fill all fields correctly.");
+      const errorTitle = getErrorTitle('auth');
+      const errorMessage = "Please fill all fields correctly.";
+      showAuthFeedback(errorTitle, errorMessage);
       return;
     }
 
     if (newPassword.length < 6) {
-      showAuthFeedback("Error", "Password must be at least 6 characters.");
+      const errorTitle = getErrorTitle('auth');
+      const errorMessage = "Password must be at least 6 characters.";
+      showAuthFeedback(errorTitle, errorMessage);
       return;
     }
 
@@ -74,7 +79,9 @@ export default function ChangePasswordScreen() {
       navigation.goBack();
     } catch (error) {
       console.error(error);
-      showAuthFeedback("Error", "Current password is incorrect.");
+      const errorTitle = getErrorTitle('auth');
+      const errorMessage = getErrorMessage(error, 'auth');
+      showAuthFeedback(errorTitle, errorMessage);
       setCurrentPassword("");
       setNewPassword("");
       setConfirmPassword("");

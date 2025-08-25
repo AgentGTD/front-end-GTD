@@ -1,21 +1,14 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { MotiView } from 'moti';
 
 export default function UploadProgress({ progress = 0 }) {
   return (
     <View style={styles.container}>
-      <MotiView
-        from={{ rotate: '0deg' }}
-        animate={{ rotate: `${progress * 3.6}deg` }}
-        transition={{ type: 'timing', duration: 300 }}
-      >
-        <View style={styles.outerCircle}>
-          <View style={styles.innerCircle}>
-            <Text style={styles.progressText}>{progress}%</Text>
-          </View>
+      <View style={styles.outerCircle}>
+        <View style={styles.innerCircle}>
+          <Text style={styles.progressText}>{progress}%</Text>
         </View>
-      </MotiView>
+      </View>
     </View>
   );
 }

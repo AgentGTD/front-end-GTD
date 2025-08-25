@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useContext } from 'react';
 import { Modal, View, Text, TextInput, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform, StyleSheet, ToastAndroid, Clipboard, Animated } from 'react-native'; 
 import { Ionicons, MaterialCommunityIcons, Fontisto } from '@expo/vector-icons';
 import { sendAIPrompt } from '../utils/aiApi';
-import Markdown from 'react-native-markdown-display';
+
 import { useTaskContext } from '../context/TaskContext';
 import { AuthContext } from '../context/AuthContext';
 
@@ -169,13 +169,25 @@ const ChatBotModal = ({ visible, onClose }) => {
         return;
       } 
       
-      // Handle rate limiting
-      if (err.message?.includes('Too many requests') || err.response?.status === 429) {
-        errorMessage = "I'm getting too many requests. Please wait a moment and try again.";
+      // Handle specific error cases
+      if (err.message?.includes('rate limit exceeded') || err.message?.includes('Too many requests') || err.response?.status === 429) {
+        errorMessage = "I'm getting too many requests right now. Please wait a moment and try again.";
         setRateLimited(true);
         setTimeout(() => setRateLimited(false), 60000); // 1 minute cooldown
       }
-      // Handle authorization errors
+      // Handle authentication errors
+      else if (err.message?.includes('authentication failed') || err.message?.includes('access forbidden') || err.response?.status === 401 || err.response?.status === 403) {
+        errorMessage = "I can't perform that action. You might need to sign in again.";
+      }
+      // Handle server errors
+      else if (err.message?.includes('internal server error') || err.response?.status === 500) {
+        errorMessage = "I'm experiencing technical difficulties. Please try again in a moment.";
+      }
+      // Handle network errors
+      else if (err.message?.includes('network') || err.message?.includes('fetch')) {
+        errorMessage = "Network connection issue. Please check your internet connection and try again.";
+      }
+      // Handle authorization errors (fallback)
       else if (err.response?.status === 401 || err.response?.status === 403) {
         errorMessage = "I can't perform that action. You might need to sign in again.";
       }
@@ -298,22 +310,9 @@ const ChatBotModal = ({ visible, onClose }) => {
                       <Text style={styles.assistantAvatarText}>A</Text>
                     </View>
                     <View style={styles.assistantContent}>
-                      <Markdown
-                        style={{
-                          body: { color: '#222', fontSize: 15, lineHeight: 22 },
-                          heading1: { color: '#222', fontWeight: 'bold', fontSize: 20, marginBottom: 6 },
-                          heading2: { color: '#222', fontWeight: 'bold', fontSize: 17, marginBottom: 4 },
-                          strong: { fontWeight: 'bold', color: '#222' },
-                          bullet_list: { marginVertical: 4 },
-                          ordered_list: { marginVertical: 4 },
-                          list_item: { marginVertical: 2 },
-                          code_inline: { backgroundColor: '#f6f8fa', color: '#7c4dff', borderRadius: 4, padding: 2 },
-                          code_block: { backgroundColor: '#f6f8fa', color: '#7c4dff', borderRadius: 4, padding: 8 },
-                          blockquote: { borderLeftColor: '#7c4dff', borderLeftWidth: 4, paddingLeft: 8, color: '#555' },
-                        }}
-                      >
+                      <Text style={styles.assistantText}>
                         {msg.content}
-                      </Markdown>
+                      </Text>
                       {msg.content !== '...' && (
                         <View style={styles.actionRow}>
                           <TouchableOpacity
@@ -525,6 +524,11 @@ const styles = StyleSheet.create({
     padding: 16,
     borderRadius: 18,
     borderTopLeftRadius: 4,
+  },
+  assistantText: {
+    color: '#222',
+    fontSize: 15,
+    lineHeight: 22,
   },
   actionRow: {
     flexDirection: 'row',
