@@ -71,6 +71,7 @@ const styles = StyleSheet.create({
     padding: 12,
   },
   menuItemText: {
+    color: '#222',
     fontSize: 16,
     marginLeft: 12,
     marginRight: 17,

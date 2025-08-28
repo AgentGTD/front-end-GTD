@@ -1,11 +1,23 @@
 import React, { useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image, StatusBar, Dimensions, Linking, SafeAreaView, BackHandler, Platform } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Image, Dimensions, Linking, SafeAreaView, BackHandler } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { MaterialIcons } from '@expo/vector-icons';
 import GoogleSignInButton from '../components/Auth/GoogleSignInButton';
 import FacebookSignInButton from '../components/Auth/FacebookSignInButton';
 
 const { width, height } = Dimensions.get('window');
+
+// Responsive sizing helpers and clamped constants
+const guidelineBaseWidth = 390; // iPhone 12 width baseline
+const scaleSize = (size) => Math.round((width / guidelineBaseWidth) * size);
+const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
+
+const HEADLINE_FONT = clamp(scaleSize(26), 20, 26);
+const SUBHEAD_FONT = clamp(scaleSize(19), 14, 19);
+const BUTTON_TEXT_FONT = clamp(scaleSize(17), 14, 17);
+const SIGNUP_TEXT_FONT = clamp(scaleSize(15), 13, 15);
+const TERMS_FONT = clamp(scaleSize(12), 11, 12);
+const CONTAINER_PADDING_TOP = clamp(Math.round(height * 0.07), 24, 48);
 
 const EntryScreen = () => {
   const navigation = useNavigation();
@@ -23,12 +35,11 @@ const EntryScreen = () => {
   return (
    <SafeAreaView style={styles.safe}>
     <View style={styles.container}>
-      <StatusBar backgroundColor="#fff" barStyle="dark-content" />
 
       {/* Headline */}
-      <Text style={styles.headline}>Focus on What Matters. Flow with Clarity</Text>
+      <Text allowFontScaling={false} style={styles.headline}>Focus on What Matters. Flow with Clarity</Text>
       {/* Subheading */}
-      <Text style={styles.subheading}>Login to your FlowDo Account</Text>
+      <Text allowFontScaling={false} style={styles.subheading}>Login to your FlowDo Account</Text>
 
       {/* Illustration */}
       <Image
@@ -44,7 +55,7 @@ const EntryScreen = () => {
           onPress={() => navigation.navigate('Login')}
         >
           <MaterialIcons name="email" size={26} color="#fff" style={styles.icon} />
-          <Text style={styles.buttonText}>Continue with Email</Text>
+          <Text allowFontScaling={false} style={styles.buttonText}>Continue with Email</Text>
         </TouchableOpacity>
 
         <GoogleSignInButton />
@@ -53,11 +64,11 @@ const EntryScreen = () => {
 
       {/* Sign Up Link */}
       <TouchableOpacity style={styles.signupLinkContainer} onPress={() => navigation.navigate('Register')}>
-        <Text style={styles.signupLinkText}>Don't have an account? <Text style={styles.signupLink}>Sign up</Text></Text>
+        <Text allowFontScaling={false} style={styles.signupLinkText}>Don't have an account? <Text allowFontScaling={false} style={styles.signupLink}>Sign up</Text></Text>
       </TouchableOpacity>
 
       {/* Terms & Privacy */}
-      <Text style={styles.termsText}>
+      <Text allowFontScaling={false} style={styles.termsText}>
         By continuing, you acknowledge that you understand and agree to FlowDo's{' '}
         <Text style={styles.link} onPress={() => Linking.openURL('https://flowdo-web.vercel.app/terms-of-service')}>Terms of Service</Text>
         {' '}and{' '}
@@ -76,12 +87,12 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'flex-start',
-    paddingHorizontal: width * 0.06,
-    paddingTop: height * 0.07,
+    paddingHorizontal: clamp(width * 0.06, 16, 24),
+    paddingTop: CONTAINER_PADDING_TOP,
     width: '100%',
   },
   headline: {
-    fontSize: 26,
+    fontSize: HEADLINE_FONT,
     fontWeight: 'bold',
     color: '#222',
     textAlign: 'center',
@@ -91,7 +102,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
   },
   subheading: {
-    fontSize: 19,
+    fontSize: SUBHEAD_FONT,
     fontWeight: '600',
     color: '#A0A0A0',
     textAlign: 'center',
@@ -99,8 +110,8 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   illustration: {
-    width: width * 0.8,
-    height: width * 0.75,
+    width: clamp(width * 0.8, 260, 360),
+    height: clamp(width * 0.75, 220, 340),
     marginBottom: 10,
   },
   buttonGroup: {
@@ -138,7 +149,7 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   buttonText: {
-    fontSize: 17,
+    fontSize: BUTTON_TEXT_FONT,
     fontWeight: '600',
     color: '#fff',
   },
@@ -148,7 +159,7 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   signupLinkText: {
-    fontSize: 15,
+    fontSize: SIGNUP_TEXT_FONT,
     color: '#888',
   },
   signupLink: {
@@ -161,7 +172,7 @@ const styles = StyleSheet.create({
     bottom: 50,
     left: 24,
     right: 24,
-    fontSize: 12,
+    fontSize: TERMS_FONT,
     color: '#888',
     textAlign: 'center',
     lineHeight: 18,

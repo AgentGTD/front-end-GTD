@@ -118,6 +118,7 @@ function RootNavigator() {
     );
   }
 
+
   if (initializing) {
     return <SplashScreen />;
   }

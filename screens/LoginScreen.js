@@ -1,5 +1,5 @@
 import React, { useState, useContext, useRef, useEffect } from "react";
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, SafeAreaView, BackHandler } from "react-native";
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, SafeAreaView, BackHandler, Dimensions } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { AuthContext } from "../context/AuthContext";
 import { signInWithEmailAndPassword } from "firebase/auth";
@@ -23,6 +23,23 @@ export default function LoginScreen() {
   const emailInputRef = useRef(null);
   const passwordInputRef = useRef(null);
   const { showAuthFeedback } = useAuthFeedback();
+
+  // Responsive helpers
+  const { width } = Dimensions.get('window');
+  const guidelineBaseWidth = 390; // iPhone 12 baseline
+  const scaleSize = (size) => Math.round((width / guidelineBaseWidth) * size);
+  const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
+
+  // Typography and spacing
+  const TITLE_FONT = clamp(scaleSize(32), 24, 32);
+  const SUBTITLE_FONT = clamp(scaleSize(17), 14, 17);
+  const INPUT_FONT = clamp(scaleSize(17), 14, 17);
+  const LABEL_FONT = clamp(scaleSize(17), 14, 17);
+  const LABEL_ACTIVE_FONT = clamp(scaleSize(13), 12, 13);
+  const BUTTON_TEXT_FONT = clamp(scaleSize(18), 16, 18);
+  const FORGOT_FONT = clamp(scaleSize(15), 13, 15);
+  const CONTAINER_PADDING_H = clamp(24, 16, 24);
+  const CONTAINER_PADDING_TOP = clamp(24, 16, 32);
 
   const isEmailValid = validateEmail(email);
   const isPasswordValid = validatePassword(password);
@@ -70,19 +87,20 @@ export default function LoginScreen() {
 
   return (
     <SafeAreaView style={styles.safe}>
-      <View style={styles.container}>
+      <View style={[styles.container, { paddingHorizontal: CONTAINER_PADDING_H, paddingTop: CONTAINER_PADDING_TOP }]}>
         <TouchableOpacity style={styles.backBtn} onPress={() => navigation.navigate("Entry")}>
           <Ionicons name="arrow-back" size={28} color="black" />
         </TouchableOpacity>
-        <Text style={styles.title}>Login</Text>
-        <Text style={styles.subtitle}>Add your email and password.</Text>
+        <Text allowFontScaling={false} style={[styles.title, { fontSize: TITLE_FONT }]}>Login</Text>
+        <Text allowFontScaling={false} style={[styles.subtitle, { fontSize: SUBTITLE_FONT }]}>Add your email and password.</Text>
         {/* Email Input with Floating Label */}
         <View style={styles.inputGroup}>
           <View style={styles.floatingLabelContainer}>
             <Text
               style={[
                 styles.floatingLabel,
-                (emailFocused || email) && styles.floatingLabelActive
+                { fontSize: LABEL_FONT },
+                (emailFocused || email) && [styles.floatingLabelActive, { fontSize: LABEL_ACTIVE_FONT }]
               ]}
             >
               Your email
@@ -91,6 +109,7 @@ export default function LoginScreen() {
               ref={emailInputRef}
               style={[
                 styles.input,
+                { fontSize: INPUT_FONT },
                 emailFocused ? { borderColor: '#007AFF' } : { borderColor: '#aaa' }
               ]}
               value={email}
@@ -113,7 +132,8 @@ export default function LoginScreen() {
             <Text
               style={[
                 styles.floatingLabel,
-                (passwordFocused || password) && styles.floatingLabelActive
+                { fontSize: LABEL_FONT },
+                (passwordFocused || password) && [styles.floatingLabelActive, { fontSize: LABEL_ACTIVE_FONT }]
               ]}
             >
               Your password
@@ -122,6 +142,7 @@ export default function LoginScreen() {
               ref={passwordInputRef}
               style={[
                 styles.input,
+                { fontSize: INPUT_FONT },
                 passwordFocused ? { borderColor: '#007AFF' } : { borderColor: '#aaa' }
               ]}
               value={password}
@@ -155,7 +176,7 @@ export default function LoginScreen() {
           accessibilityLabel="Log in"
         />
         <TouchableOpacity onPress={() => navigation.navigate("ResetPassword")}>
-          <Text style={styles.forgotText}>Forgot your password?</Text>
+          <Text allowFontScaling={false} style={[styles.forgotText, { fontSize: FORGOT_FONT }]}>Forgot your password?</Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>
@@ -167,8 +188,8 @@ const styles = StyleSheet.create({
   container: { flex: 1, paddingHorizontal: 24, paddingTop: 24, marginTop: 40 },
   backBtn: { marginBottom: 10, marginLeft: -8 },
   backArrow: { fontSize: 28, color: "#222" },
-  title: { fontSize: 32, fontWeight: "bold", color: "#222", marginBottom: 6 },
-  subtitle: { fontSize: 17, color: "#222", marginBottom: 24 },
+  title: { fontWeight: "bold", color: "#222", marginBottom: 6 },
+  subtitle: { color: "#222", marginBottom: 24 },
   inputGroup: { marginBottom: 18 },
   label: { fontSize: 15, color: "#007AFF", marginBottom: 4, marginLeft: 6 },
   input: {
@@ -177,7 +198,6 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderRadius: 12,
     paddingHorizontal: 16,
-    fontSize: 17,
     backgroundColor: "#f6f8fa",
     color: "#222",
   },

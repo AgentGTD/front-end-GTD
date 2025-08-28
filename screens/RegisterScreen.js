@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { View, Text, TextInput, TouchableOpacity, Alert, StyleSheet, SafeAreaView, BackHandler } from "react-native";
+import { View, Text, TextInput, TouchableOpacity, Alert, StyleSheet, SafeAreaView, BackHandler, Dimensions } from "react-native";
 import { auth } from "../utils/firebase";
 import { createUserWithEmailAndPassword, sendEmailVerification } from "firebase/auth";
 import { useNavigation } from "@react-navigation/native";
@@ -20,6 +20,22 @@ export default function RegisterScreen() {
   const emailInputRef = useRef(null);
   const passwordInputRef = useRef(null);
   const { showAuthFeedback } = useAuthFeedback();
+
+  // Responsive helpers
+  const { width } = Dimensions.get('window');
+  const guidelineBaseWidth = 390; // iPhone 12 baseline
+  const scaleSize = (size) => Math.round((width / guidelineBaseWidth) * size);
+  const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
+
+  // Typography and spacing
+  const TITLE_FONT = clamp(scaleSize(32), 24, 32);
+  const SUBTITLE_FONT = clamp(scaleSize(17), 14, 17);
+  const INPUT_FONT = clamp(scaleSize(17), 14, 17);
+  const LABEL_FONT = clamp(scaleSize(17), 14, 17);
+  const LABEL_ACTIVE_FONT = clamp(scaleSize(13), 12, 13);
+  const PASSWORD_HINT_FONT = clamp(scaleSize(13), 12, 13);
+  const CONTAINER_PADDING_H = clamp(24, 16, 24);
+  const CONTAINER_PADDING_TOP = clamp(24, 16, 32);
   
   const isEmailValid = validateEmail(email);
   const isPasswordValid = validatePassword(password);
@@ -57,19 +73,20 @@ export default function RegisterScreen() {
 
   return (
     <SafeAreaView style={styles.safe}>
-      <View style={styles.container}>
+      <View style={[styles.container, { paddingHorizontal: CONTAINER_PADDING_H, paddingTop: CONTAINER_PADDING_TOP }]}>
         <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
           <Ionicons name="arrow-back" size={28} color="black" />
         </TouchableOpacity>
-        <Text style={styles.title}>Sign up</Text>
-        <Text style={styles.subtitle}>Add your email and password.</Text>
+        <Text allowFontScaling={false} style={[styles.title, { fontSize: TITLE_FONT }]}>Sign up</Text>
+        <Text allowFontScaling={false} style={[styles.subtitle, { fontSize: SUBTITLE_FONT }]}>Add your email and password.</Text>
         {/* Email Input with Floating Label */}
         <View style={styles.inputGroup}>
           <View style={styles.floatingLabelContainer}>
             <Text
               style={[
                 styles.floatingLabel,
-                (emailFocused || email) && styles.floatingLabelActive
+                { fontSize: LABEL_FONT },
+                (emailFocused || email) && [styles.floatingLabelActive, { fontSize: LABEL_ACTIVE_FONT }]
               ]}
             >
               Your email
@@ -78,6 +95,7 @@ export default function RegisterScreen() {
               ref={emailInputRef}
               style={[
                 styles.input,
+                { fontSize: INPUT_FONT },
                 emailFocused ? { borderColor: '#007AFF' } : { borderColor: '#aaa' }
               ]}
               value={email}
@@ -100,7 +118,8 @@ export default function RegisterScreen() {
             <Text
               style={[
                 styles.floatingLabel,
-                (passwordFocused || password) && styles.floatingLabelActive
+                { fontSize: LABEL_FONT },
+                (passwordFocused || password) && [styles.floatingLabelActive, { fontSize: LABEL_ACTIVE_FONT }]
               ]}
             >
               Your password
@@ -109,6 +128,7 @@ export default function RegisterScreen() {
               ref={passwordInputRef}
               style={[
                 styles.input,
+                { fontSize: INPUT_FONT },
                 passwordFocused ? { borderColor: '#007AFF' } : { borderColor: '#aaa' }
               ]}
               value={password}
@@ -130,6 +150,9 @@ export default function RegisterScreen() {
             </TouchableOpacity>
           </View>
         </View>
+        <Text allowFontScaling={false} style={[styles.passwordHint, { fontSize: PASSWORD_HINT_FONT }]}>
+           Your password must be at least 8 characters long. Avoid the common pattrens.
+        </Text>
           <LoadingButton
             style={[
               styles.signupBtn,
@@ -202,5 +225,11 @@ const styles = StyleSheet.create({
     color: "#007AFF",
     backgroundColor: "#f6f8fa",
     paddingHorizontal: 2,
+  },
+  passwordHint: {
+    fontSize: 13,
+    color: "#555",
+    marginBottom: 0,
+
   },
 });

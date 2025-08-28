@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useContext } from 'react';
-import { Modal, View, Text, TextInput, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform, StyleSheet, ToastAndroid, Clipboard, Animated } from 'react-native'; 
+import { Modal, View, Text, TextInput, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform, StyleSheet, ToastAndroid, Animated, useWindowDimensions } from 'react-native'; 
+import * as Clipboard from 'expo-clipboard';
 import { Ionicons, MaterialCommunityIcons, Fontisto } from '@expo/vector-icons';
 import { sendAIPrompt } from '../utils/aiApi';
 
@@ -19,6 +20,22 @@ const ChatBotModal = ({ visible, onClose }) => {
   const inputRef = useRef(null);
   const abortControllerRef = useRef(null);
   const slideAnim = useRef(new Animated.Value(0)).current;
+  // Responsive UI values
+  const { width, height } = useWindowDimensions();
+  const isLandscape = width > height;
+  const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
+  const scale = (size) => Math.round((width / 390) * size); // 390 ~ iPhone 12 width
+  const INPUT_FONT = clamp(scale(15), 13, 15);
+  const HEADER_HEIGHT = isLandscape ? 56 : 70;
+  const MODAL_MARGIN_TOP = isLandscape ? 24 : 50;
+  const CHAT_PADDING_H = isLandscape ? 12 : 20;
+  const INPUT_MAX_HEIGHT = isLandscape ? 100 : 120;
+  const INPUT_PADDING_V = isLandscape ? 6 : 8;
+
+  // Shorten placeholder for tight widths/landscape
+  const placeholderText = width < 360 || isLandscape
+    ? 'Ask Atom about productivity'
+    : 'Ask Atom about productivity';
 
   const [firebaseToken, setFirebaseToken] = useState(null);
   const [rateLimited, setRateLimited] = useState(false);
@@ -210,8 +227,10 @@ const ChatBotModal = ({ visible, onClose }) => {
     setMessages((prev) => prev.filter(msg => msg.content !== '...'));
   };
 
-  const handleCopy = (text) => {
-    Clipboard.setString(text);
+  const handleCopy = async (text) => {
+    try {
+      await Clipboard.setStringAsync(text);
+    } catch (e) {}
     if (Platform.OS === 'android') {
       ToastAndroid.show('Copied!', ToastAndroid.SHORT);
     }
@@ -272,8 +291,8 @@ const ChatBotModal = ({ visible, onClose }) => {
           {/* Chat Area */}
           <ScrollView
             ref={scrollRef}
-            style={styles.chatArea}
-            contentContainerStyle={{ paddingBottom: 80 }}
+            style={[styles.chatArea, { paddingHorizontal: CHAT_PADDING_H }]}
+            contentContainerStyle={{ paddingBottom: isLandscape ? 64 : 80 }}
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}
           >
@@ -343,9 +362,13 @@ const ChatBotModal = ({ visible, onClose }) => {
                 onChangeText={setInput}
                 multiline
                 onContentSizeChange={(e) => setInputHeight(e.nativeEvent.contentSize.height)}
-                placeholder="Ask Atom anything about productivity..."
+                placeholder={placeholderText}
                 placeholderTextColor="#888"
-                style={[styles.input, { height: Math.max(40, Math.min(inputHeight, 120)) }]}
+                style={[
+                  styles.input,
+                  { fontSize: INPUT_FONT, paddingVertical: INPUT_PADDING_V },
+                  { height: Math.max(40, Math.min(inputHeight, INPUT_MAX_HEIGHT)) }
+                ]}
                 editable={!isLoading && !rateLimited}
                 onSubmitEditing={rateLimited ? undefined : handleSend}
                 returnKeyType="send"

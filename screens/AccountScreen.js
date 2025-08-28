@@ -1,5 +1,5 @@
 import React, { useContext, useState } from "react";
-import { View, Text, StyleSheet, Image, TouchableOpacity, SafeAreaView, Modal, TextInput, Alert, ActivityIndicator, Dimensions, Platform } from "react-native";
+import { View, Text, StyleSheet, Image, TouchableOpacity, SafeAreaView, Modal, TextInput, Alert, ActivityIndicator, Dimensions, Platform, ScrollView } from "react-native";
 import { AuthContext } from "../context/AuthContext";
 import { auth } from "../utils/firebase";
 import { Ionicons } from "@expo/vector-icons";
@@ -10,6 +10,23 @@ import { useAuthFeedback } from "../context/AuthFeedbackContext";
 import { getErrorMessage, getErrorTitle } from "../utils/errorHandler";
 
 const { width, height } = Dimensions.get("window");
+
+// Responsive helpers
+const guidelineBaseWidth = 390; // iPhone 12 baseline
+const scaleSize = (size) => Math.round((width / guidelineBaseWidth) * size);
+const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
+
+// Typography clamps
+const HEADER_FONT = clamp(scaleSize(22), 18, 22);
+const SECTION_TITLE_FONT = clamp(scaleSize(16), 14, 16);
+const SECTION_VALUE_FONT = clamp(scaleSize(16), 14, 16);
+const CAPTION_FONT = clamp(scaleSize(13), 12, 13);
+const CAPTION_SMALL_FONT = clamp(scaleSize(12), 11, 12);
+const BUTTON_FONT = clamp(scaleSize(16), 14, 16);
+
+// Spacing and avatar sizing
+const CONTAINER_PADDING = clamp(Math.max(16, width * 0.04), 14, 24);
+const AVATAR_SIZE = clamp(Math.round(width * 0.25), 72, 120);
 
 export default function AccountScreen({ navigation }) {
   const { user, logout, uploadImageToCloudinary, completeProfile } =
@@ -204,12 +221,17 @@ export default function AccountScreen({ navigation }) {
 
   return (
     <SafeAreaView style={styles.safe}>
-      <View style={styles.container}>
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.container}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
         <View style={styles.headerRow}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
             <Ionicons name="arrow-back" size={24} color="#222" />
           </TouchableOpacity>
-          <Text style={styles.header}>Account</Text>
+          <Text allowFontScaling={false} style={styles.header}>Account</Text>
         </View>
 
         <View style={styles.card}>
@@ -233,23 +255,23 @@ export default function AccountScreen({ navigation }) {
             </View>
           </TouchableOpacity>
 
-          <Text style={styles.sectionTitle}>Avatar</Text>
+          <Text allowFontScaling={false} style={styles.sectionTitle}>Avatar</Text>
         </View>
 
         <View style={styles.section}>
           <View style={styles.rowBetween}>
-            <Text style={styles.sectionTitle}>Name</Text>
+            <Text allowFontScaling={false} style={styles.sectionTitle}>Name</Text>
             <TouchableOpacity onPress={() => { setNewName(user?.displayName || ""); setNameModalVisible(true); }}>
               <Ionicons name="chevron-forward" size={22} color="#8E8E93" />
             </TouchableOpacity>
           </View>
-          <Text style={styles.sectionValue}>{user?.displayName || "Anonymous"}</Text>
+          <Text allowFontScaling={false} style={styles.sectionValue}>{user?.displayName || "Anonymous"}</Text>
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Email</Text>
-          <Text style={styles.sectionValue}>{user?.email}</Text>
-          <Text style={styles.captionSmall}>Email change coming soon</Text>
+          <Text allowFontScaling={false} style={styles.sectionTitle}>Email</Text>
+          <Text allowFontScaling={false} style={styles.sectionValue}>{user?.email}</Text>
+          <Text allowFontScaling={false} style={styles.captionSmall}>Email change coming soon</Text>
         </View>
 
         <TouchableOpacity
@@ -258,30 +280,30 @@ export default function AccountScreen({ navigation }) {
           onPress={() => navigation.navigate("ChangePassword")}
         >
           <View style={styles.rowBetween}>
-            <Text style={styles.sectionTitle}>Password</Text>
+            <Text allowFontScaling={false} style={styles.sectionTitle}>Password</Text>
             <Ionicons name="chevron-forward" size={20} color="#8E8E93" />
           </View>
-          <Text style={styles.sectionDescription}>Change your account password</Text>
+          <Text allowFontScaling={false} style={styles.sectionDescription}>Change your account password</Text>
         </TouchableOpacity>
 
         {/* Delete account */}
         <View style={styles.deleteSection}>
-          <Text style={styles.sectionTitle}>Delete account</Text>
-          <Text style={styles.deleteDescription}>
+          <Text allowFontScaling={false} style={styles.sectionTitle}>Delete account</Text>
+          <Text allowFontScaling={false} style={styles.deleteDescription}>
             Deleting your account is permanent. You will immediately lose access to all your data.
           </Text>
           <TouchableOpacity
             style={styles.deleteButton}
             onPress={() => setDeleteModalVisible(true)}
           >
-            <Text style={styles.deleteButtonText}>Delete Account</Text>
+            <Text allowFontScaling={false} style={styles.deleteButtonText}>Delete Account</Text>
           </TouchableOpacity>
         </View>
 
         <TouchableOpacity style={styles.logoutButton} onPress={toggleLogoutModal}>
-          <Text style={styles.logoutButtonText}>Log Out</Text>
+          <Text allowFontScaling={false} style={styles.logoutButtonText}>Log Out</Text>
         </TouchableOpacity>
-      </View>
+      </ScrollView>
 
       {/* Name Edit Modal */}
       <Modal
@@ -292,7 +314,7 @@ export default function AccountScreen({ navigation }) {
       >
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Edit Name</Text>
+            <Text allowFontScaling={false} style={styles.modalTitle}>Edit Name</Text>
             <TextInput
               style={styles.nameInput}
               value={newName}
@@ -306,7 +328,7 @@ export default function AccountScreen({ navigation }) {
                 onPress={() => setNameModalVisible(false)}
                 disabled={savingName}
               >
-                <Text style={styles.modalButtonText}>Cancel</Text>
+                <Text allowFontScaling={false} style={styles.modalButtonText}>Cancel</Text>
               </TouchableOpacity>
               <LoadingButton
                 style={[styles.modalButton, styles.modalPrimaryButton]}
@@ -329,11 +351,11 @@ export default function AccountScreen({ navigation }) {
       >
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Delete Account</Text>
-            <Text style={styles.modalText}>
+            <Text allowFontScaling={false} style={styles.modalTitle}>Delete Account</Text>
+            <Text allowFontScaling={false} style={styles.modalText}>
               Are you sure you want to delete your account? This action is permanent and cannot be undone.
             </Text>
-            <Text style={styles.modalWarning}>
+            <Text allowFontScaling={false} style={styles.modalWarning}>
               All your data will be immediately and permanently deleted.
             </Text>
 
@@ -343,7 +365,7 @@ export default function AccountScreen({ navigation }) {
                 onPress={() => setDeleteModalVisible(false)}
                 disabled={isDeleting}
               >
-                <Text style={styles.modalButtonText}>Cancel</Text>
+                <Text allowFontScaling={false} style={styles.modalButtonText}>Cancel</Text>
               </TouchableOpacity>
 
               <LoadingButton
@@ -367,20 +389,20 @@ export default function AccountScreen({ navigation }) {
       >
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Log Out</Text>
-            <Text style={styles.modalText}>Are you sure you want to log out?</Text>
+            <Text allowFontScaling={false} style={styles.modalTitle}>Log Out</Text>
+            <Text allowFontScaling={false} style={styles.modalText}>Are you sure you want to log out?</Text>
             <View style={styles.modalButtonRow}>
               <TouchableOpacity
                 style={[styles.modalButton, styles.cancelButton]}
                 onPress={() => setLogoutModalVisible(false)}
               >
-                <Text style={styles.modalButtonText}>Cancel</Text>
+                <Text allowFontScaling={false} style={styles.modalButtonText}>Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.modalButton, styles.modalPrimaryButton]}
                 onPress={confirmLogout}
               >
-                <Text style={[styles.modalButtonText, { color: "#fff" }]}>Log Out</Text>
+                <Text allowFontScaling={false} style={[styles.modalButtonText, { color: "#fff" }]}>Log Out</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -392,9 +414,10 @@ export default function AccountScreen({ navigation }) {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: "#f6f8fa" },
+  scroll: { flex: 1 },
   container: {
     flex: 1,
-    padding: Math.max(16, width * 0.04),
+    padding: CONTAINER_PADDING,
   },
   headerRow: {
     flexDirection: "row",
@@ -404,7 +427,7 @@ const styles = StyleSheet.create({
   },
   backButton: { padding: 6 },
   header: {
-    fontSize: 22,
+    fontSize: HEADER_FONT,
     fontWeight: "700",
     color: "#222",
     marginLeft: 8,
@@ -426,9 +449,9 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   avatar: {
-    width: Math.round(width * 0.25),
-    height: Math.round(width * 0.25),
-    borderRadius: Math.round((width * 0.25) / 2),
+    width: AVATAR_SIZE,
+    height: AVATAR_SIZE,
+    borderRadius: Math.round(AVATAR_SIZE / 2),
     borderWidth: 1,
     borderColor: "#eee",
     resizeMode: "cover",
@@ -445,18 +468,18 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   sectionTitle: {
-    fontSize: 16,
+    fontSize: SECTION_TITLE_FONT,
     fontWeight: "600",
     color: "#222",
   },
   caption: {
     color: "#666",
-    fontSize: 13,
+    fontSize: CAPTION_FONT,
     marginTop: 4,
   },
   captionSmall: {
     color: "#999",
-    fontSize: 12,
+    fontSize: CAPTION_SMALL_FONT,
     marginTop: 6,
   },
   section: {
@@ -476,12 +499,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   sectionValue: {
-    fontSize: 16,
+    fontSize: SECTION_VALUE_FONT,
     color: "#444",
     marginTop: 8,
   },
   sectionDescription: {
-    fontSize: 14,
+    fontSize: clamp(scaleSize(14), 12, 14),
     color: "#777",
     marginTop: 8,
   },
@@ -492,7 +515,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   deleteDescription: {
-    fontSize: 14,
+    fontSize: clamp(scaleSize(14), 12, 14),
     color: "#777",
     marginTop: 8,
     marginBottom: 12,
@@ -508,7 +531,7 @@ const styles = StyleSheet.create({
   deleteButtonText: {
     color: "#E74C3C",
     fontWeight: "600",
-    fontSize: 16,
+    fontSize: BUTTON_FONT,
   },
   logoutButton: {
     backgroundColor: "#007AFF",
@@ -521,7 +544,7 @@ const styles = StyleSheet.create({
   logoutButtonText: {
     color: "#fff",
     fontWeight: "700",
-    fontSize: 16,
+    fontSize: BUTTON_FONT,
   },
 
   /* modal */
@@ -540,18 +563,18 @@ const styles = StyleSheet.create({
     maxWidth: 520,
   },
   modalTitle: {
-    fontSize: 20,
+    fontSize: clamp(scaleSize(20), 18, 20),
     fontWeight: "700",
     color: "#222",
     marginBottom: 12,
   },
   modalText: {
-    fontSize: 15,
+    fontSize: clamp(scaleSize(15), 13, 15),
     color: "#444",
     marginBottom: 12,
   },
   modalWarning: {
-    fontSize: 15,
+    fontSize: clamp(scaleSize(15), 13, 15),
     color: "#EA4335",
     fontWeight: "600",
     marginBottom: 16,
@@ -561,7 +584,7 @@ const styles = StyleSheet.create({
     borderColor: "#ddd",
     borderRadius: 8,
     padding: Platform.OS === "ios" ? 14 : 12,
-    fontSize: 16,
+    fontSize: clamp(scaleSize(16), 14, 16),
     marginBottom: 18,
   },
   modalButtonRow: {
@@ -595,7 +618,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#f0f0f0",
   },
   modalButtonText: {
-    fontSize: 16,
+    fontSize: BUTTON_FONT,
     fontWeight: "600",
     color: "#444",
   },

@@ -4,29 +4,22 @@ import {  GoogleAuthProvider, initializeAuth, getReactNativePersistence } from "
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getFirestore  } from "firebase/firestore";
 
-// Try to import from @env, with fallbacks for production builds
+// Prefer Expo extra (EAS env), then @env, then safe fallbacks
 let FIREBASE_API_KEY, FIREBASE_AUTH_DOMAIN, FIREBASE_PROJECT_ID, FIREBASE_STORAGE_BUCKET, FIREBASE_MESSAGING_SENDER_ID, FIREBASE_APP_ID, FIREBASE_MEASUREMENT_ID;
-
 try {
-  const env = require('@env');
-  FIREBASE_API_KEY = env.FIREBASE_API_KEY;
-  FIREBASE_AUTH_DOMAIN = env.FIREBASE_AUTH_DOMAIN;
-  FIREBASE_PROJECT_ID = env.FIREBASE_PROJECT_ID;
-  FIREBASE_STORAGE_BUCKET = env.FIREBASE_STORAGE_BUCKET;
-  FIREBASE_MESSAGING_SENDER_ID = env.FIREBASE_MESSAGING_SENDER_ID;
-  FIREBASE_APP_ID = env.FIREBASE_APP_ID;
-  FIREBASE_MEASUREMENT_ID = env.FIREBASE_MEASUREMENT_ID;
-} catch (error) {
-  console.warn('Failed to load environment variables from @env, using fallbacks');
-  // Fallback values for production builds
-  FIREBASE_API_KEY = 'AIzaSyDdB8w-Ww8cE7l_7DB5tCGKGcm3WBPScHI';
-  FIREBASE_AUTH_DOMAIN = 'flowdo-gtd.firebaseapp.com';
-  FIREBASE_PROJECT_ID = 'flowdo-gtd';
-  FIREBASE_STORAGE_BUCKET = 'flowdo-gtd.firebasestorage.app';
-  FIREBASE_MESSAGING_SENDER_ID = '348188214999';
-  FIREBASE_APP_ID = '1:348188214999:web:4f306be9e1d86b2081d292';
-  FIREBASE_MEASUREMENT_ID = 'G-2X3TNY0LJ8';
-}
+  const Constants = require('expo-constants').default;
+  const extra = Constants?.expoConfig?.extra || Constants?.manifest2?.extra || {};
+  FIREBASE_API_KEY = extra.FIREBASE_API_KEY;
+  FIREBASE_AUTH_DOMAIN = extra.FIREBASE_AUTH_DOMAIN;
+  FIREBASE_PROJECT_ID = extra.FIREBASE_PROJECT_ID;
+  FIREBASE_STORAGE_BUCKET = extra.FIREBASE_STORAGE_BUCKET;
+  FIREBASE_MESSAGING_SENDER_ID = extra.FIREBASE_MESSAGING_SENDER_ID;
+  FIREBASE_APP_ID = extra.FIREBASE_APP_ID;
+  FIREBASE_MEASUREMENT_ID = extra.FIREBASE_MEASUREMENT_ID;
+} catch (_) {}
+
+// Do not attempt to import from @env; rely solely on expo constants or fallback 
+// ignored in git push
 
 // Validate Firebase configuration
 if (!FIREBASE_API_KEY || !FIREBASE_AUTH_DOMAIN || !FIREBASE_PROJECT_ID) {

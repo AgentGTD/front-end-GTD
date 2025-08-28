@@ -2,27 +2,28 @@
   "expo": {
     "name": "FlowDo",
     "slug": "FlowDo",
-    "version": "1.0.1",
+    "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/logo1.png",
+    "icon": "./assets/expo-icon2.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": false,
     "splash": {
-      "image": "./assets/logo1.png",
+      "image": "./assets/expo-icon2.png",
       "resizeMode": "contain",
       "backgroundColor": "#f6f8fa",
       "dark": {
-        "image": "./assets/logo1.png",
+        "image": "./assets/expo-icon2.png",
         "backgroundColor": "#222"
       }
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.flowdo.app"
+      "bundleIdentifier": "com.flowdo.app",
+      "icon": "./assets/expo-icon2.png"
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/logo1.png",
+        "foregroundImage": "./assets/expo-icon2.png",
         "backgroundColor": "#f6f8fa"
       },
       "edgeToEdgeEnabled": true,
@@ -30,15 +31,12 @@
       "versionCode": 2,
       "permissions": [
         "android.permission.INTERNET",
-        "android.permission.ACCESS_NETWORK_STATE",
-        "android.permission.CAMERA",
-        "android.permission.READ_EXTERNAL_STORAGE",
-        "android.permission.WRITE_EXTERNAL_STORAGE"
+        "android.permission.ACCESS_NETWORK_STATE"
       ],
       "allowBackup": false
     },
     "web": {
-      "favicon": "./assets/logo1.png"
+      "favicon": "./assets/expo-icon2.png"
     },
     "extra": {
       "eas": {

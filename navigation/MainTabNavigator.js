@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
-import { View, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, Dimensions, Platform } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import TodayScreen from '../screens/TodayScreen';
 import InboxScreen from '../screens/InboxScreen';
 import ProjectsStack from './ProjectsStackNavigator';
@@ -12,6 +13,13 @@ const Tab = createBottomTabNavigator();
 
 export default function MainTabNavigator() {
   const [modalVisible, setModalVisible] = useState(false);
+  const insets = useSafeAreaInsets();
+  const { height: windowHeight } = Dimensions.get('window');
+
+  // Compute a responsive base height between 56 and 88 depending on screen height
+  const baseHeight = Math.max(56, Math.min(88, Math.round(windowHeight * 0.09)));
+  const bottomPadding = Math.max(insets.bottom, 8);
+  const tabBarHeight = baseHeight + (Platform.OS === 'android' ? Math.max(insets.bottom, 0) : insets.bottom);
 
   return (
     <>
@@ -22,11 +30,11 @@ export default function MainTabNavigator() {
           tabBarInactiveTintColor: '#8E8E93',
           tabBarStyle: {
             backgroundColor: '#FBFAF8',
-            height: 125,
+            height: tabBarHeight,
             borderTopWidth: 0.5,
             borderTopColor: '#ccc',
-            paddingBottom: 8,
-            paddingTop: 12,
+            paddingBottom: bottomPadding,
+            paddingTop: Math.round(baseHeight * 0.17),
             paddingHorizontal: 2,
           },
           tabBarLabelStyle: {

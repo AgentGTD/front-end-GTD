@@ -1,7 +1,10 @@
 import React, { createContext, useContext, useReducer, useEffect, useRef } from 'react';
 import { debugFetch } from '../utils/debugFetch';
 import { AuthContext } from './AuthContext';
-import { API_BASE_URL } from '@env';
+import Constants from 'expo-constants';
+
+// Derive API base URL from Expo constants to avoid @env in EAS builds
+const API_BASE_URL = (Constants?.expoConfig?.extra?.API_BASE_URL || Constants?.manifest2?.extra?.API_BASE_URL || 'https://gtd-backend-backend-gtd-h6hi.encr.app');
 
 const TaskContext = createContext();
 

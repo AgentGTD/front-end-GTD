@@ -184,7 +184,7 @@ const renderProject = ({ item }) => {
         <Ionicons name="search-outline" size={20} color="#888" style={{ marginRight: 8 }} />
         <TextInput
           style={styles.searchInput}
-          placeholder="Search contexts @computer, @home"
+          placeholder="Search contexts @computer"
           placeholderTextColor="#999"
           value={search}
           onChangeText={setSearch}

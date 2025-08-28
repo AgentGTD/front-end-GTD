@@ -50,6 +50,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   itemText: {
+    color: '#222',
     flex: 1,
     fontSize: 20,
     marginLeft: 16,

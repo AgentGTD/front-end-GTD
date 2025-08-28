@@ -59,7 +59,7 @@ export default function ChangePasswordScreen() {
 
     if (newPassword.length < 6) {
       const errorTitle = getErrorTitle('auth');
-      const errorMessage = "Password must be at least 6 characters.";
+      const errorMessage = "Password must be at least 8 characters.";
       showAuthFeedback(errorTitle, errorMessage);
       return;
     }

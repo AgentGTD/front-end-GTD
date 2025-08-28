@@ -223,14 +223,14 @@ export function AuthProvider({ children }) {
     // Try to get Cloudinary config from environment
     let CLOUDINARY_CLOUD_NAME, CLOUDINARY_UPLOAD_PRESET;
     try {
-      const env = require('@env');
-      CLOUDINARY_CLOUD_NAME = env.CLOUDINARY_CLOUD_NAME;
-      CLOUDINARY_UPLOAD_PRESET = env.CLOUDINARY_UPLOAD_PRESET;
-    } catch (error) {
-      // Fallback values
-      CLOUDINARY_CLOUD_NAME = 'dl0fl7kvn';
-      CLOUDINARY_UPLOAD_PRESET = 'FlowDo Mobile App';
-    }
+      const Constants = require('expo-constants').default;
+      const extra = Constants?.expoConfig?.extra || Constants?.manifest2?.extra || {};
+      CLOUDINARY_CLOUD_NAME = extra.CLOUDINARY_CLOUD_NAME;
+      CLOUDINARY_UPLOAD_PRESET = extra.CLOUDINARY_UPLOAD_PRESET;
+    } catch (_) {}
+    // Fallback values
+    CLOUDINARY_CLOUD_NAME = CLOUDINARY_CLOUD_NAME || 'dl0fl7kvn';
+    CLOUDINARY_UPLOAD_PRESET = CLOUDINARY_UPLOAD_PRESET || 'FlowDo Mobile App';
 
     if (!CLOUDINARY_CLOUD_NAME || !CLOUDINARY_UPLOAD_PRESET) {
       throw new Error("Cloudinary configuration missing");

@@ -38,3 +38,11 @@ env*
 # typescript
 *.tsbuildinfo
 yarn.lock
+
+# IDE metadata
+.idea
+
+# build artifacts
+com.flowdo.app
+*.iml
+

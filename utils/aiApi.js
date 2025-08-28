@@ -1,5 +1,10 @@
 import { debugFetch } from './debugFetch';
-import { API_BASE_URL } from '@env';
+import Constants from 'expo-constants';
+
+// Prefer EAS env via expo-constants extras; avoid @env which breaks on EAS
+let API_BASE_URL = Constants?.expoConfig?.extra?.API_BASE_URL || Constants?.manifest2?.extra?.API_BASE_URL;
+// Final fallback (prod-safe): hardcoded public backend URL
+API_BASE_URL = API_BASE_URL || 'https://gtd-backend-backend-gtd-h6hi.encr.app';
 
 
 // Send an AI prompt to the backend

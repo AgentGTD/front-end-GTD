@@ -1,4 +1,7 @@
-import { API_BASE_URL } from "@env";
+import Constants from 'expo-constants';
+
+// Derive API_BASE_URL from expo constants extras; avoid @env for EAS builds
+const API_BASE_URL = (Constants?.expoConfig?.extra?.API_BASE_URL || Constants?.manifest2?.extra?.API_BASE_URL || 'https://gtd-backend-backend-gtd-h6hi.encr.app');
 
 // Debug logging for API configuration
 console.log('🔧 API Configuration Debug:');
