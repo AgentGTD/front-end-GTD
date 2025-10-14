@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, TouchableWithoutFeedback, Platform, KeyboardAvoidingView, Modal } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, TouchableWithoutFeedback, Platform, KeyboardAvoidingView, Modal, Animated, PanResponder } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useTaskContext } from '../context/TaskContext';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
@@ -15,9 +15,66 @@ const AddTaskModal = ({ visible, onClose, defaultProjectId, defaultCategory, def
   const [showPicker, setShowPicker] = useState(false);
   const [showPriorityModal, setShowPriorityModal] = useState(false);
   const inputRef = useRef(null);
+  const isClosingRef = useRef(false);
+
+  const safeClose = () => {
+    if (isClosingRef.current) return;
+    isClosingRef.current = true;
+    onClose();
+  };
+
+  // Drag-to-dismiss state
+  const translateY = useRef(new Animated.Value(0)).current;
+  const backdropOpacity = useRef(new Animated.Value(0)).current;
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: (_, gestureState) => Math.abs(gestureState.dy) > 4,
+      onPanResponderMove: (_, gestureState) => {
+        if (gestureState.dy > 0) {
+          translateY.setValue(gestureState.dy);
+        }
+      },
+      onPanResponderRelease: (_, gestureState) => {
+        if (gestureState.dy > 120 || gestureState.vy > 0.8) {
+          Animated.timing(translateY, {
+            toValue: 400,
+            duration: 160,
+            useNativeDriver: true,
+          }).start(() => {
+            translateY.setValue(0);
+            safeClose();
+          });
+        } else {
+          Animated.spring(translateY, {
+            toValue: 0,
+            useNativeDriver: true,
+            bounciness: 6,
+          }).start();
+        }
+      },
+      onPanResponderTerminate: () => {
+        Animated.spring(translateY, { toValue: 0, useNativeDriver: true, bounciness: 6 }).start();
+      },
+    })
+  ).current;
+
+  // Fade backdrop when modal visibility changes
+  useEffect(() => {
+    if (visible) {
+      Animated.timing(backdropOpacity, {
+        toValue: 0.5,
+        duration: 180,
+        useNativeDriver: true,
+      }).start();
+    } else {
+      backdropOpacity.setValue(0);
+    }
+  }, [visible]);
 
   useEffect(() => {
     if (visible) {
+      isClosingRef.current = false;
       setTimeout(() => inputRef.current?.focus(), 200);
     }
   }, [visible]);
@@ -61,7 +118,7 @@ const AddTaskModal = ({ visible, onClose, defaultProjectId, defaultCategory, def
       defaultNextActionId || null
     );
 
-    onClose();
+    safeClose();
     resetForm();
   };
 
@@ -103,15 +160,15 @@ const AddTaskModal = ({ visible, onClose, defaultProjectId, defaultCategory, def
       visible={visible}
       animationType="slide"
       transparent
-      onRequestClose={onClose}
-      onBackdropPress={onClose}
-      onSwipeComplete={onClose}
+      onRequestClose={safeClose}
+      onBackdropPress={safeClose}
+      onSwipeComplete={safeClose}
       statusBarTranslucent
     >
       <TouchableWithoutFeedback onPress={() => {
         setShowPriorityModal(false);
         setShowPicker(false);
-        onClose();
+        safeClose();
       }}>
         <View style={styles.modalOverlay}>
           <TouchableWithoutFeedback>
@@ -119,8 +176,8 @@ const AddTaskModal = ({ visible, onClose, defaultProjectId, defaultCategory, def
               behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
               style={styles.keyboardView}
             >
-              <View style={styles.modal}>
-                <View style={styles.modalHeader}>
+              <Animated.View style={[styles.modal, { transform: [{ translateY }] }]}>
+                <View style={styles.modalHeader} {...panResponder.panHandlers}>
                   <View style={styles.sheetHandle} />
                   <Text style={styles.modalTitle}>New Task</Text>
                 </View>
@@ -186,7 +243,7 @@ const AddTaskModal = ({ visible, onClose, defaultProjectId, defaultCategory, def
                   <Ionicons name="add" size={24} color="white" />
                   <Text style={styles.actionButtonText}>Create Task</Text>
                 </TouchableOpacity>
-              </View>
+              </Animated.View>
             </KeyboardAvoidingView>
           </TouchableWithoutFeedback>
         </View>
@@ -214,7 +271,7 @@ const AddTaskModal = ({ visible, onClose, defaultProjectId, defaultCategory, def
 const styles = StyleSheet.create({
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: 'rgba(0, 0, 0, 0.25)',
     justifyContent: 'flex-end',
   },
   keyboardView: {

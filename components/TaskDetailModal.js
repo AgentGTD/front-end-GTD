@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Modal, View, Text, TextInput, TouchableOpacity, StyleSheet, Platform, FlatList, ScrollView, TouchableWithoutFeedback  } from 'react-native';
+import { Modal, View, Text, TextInput, TouchableOpacity, StyleSheet, Platform, FlatList, ScrollView, TouchableWithoutFeedback, useColorScheme  } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { useTaskContext } from '../context/TaskContext';
@@ -24,6 +24,10 @@ const TaskDetailModal = ({ visible, task, onClose, moveTo, onComplete }) => {
   const [newProjectName, setNewProjectName] = useState('');
   const [selectedContext, setSelectedContext] = useState('');
   const [newContextName, setNewContextName] = useState('');
+
+  const colorScheme = useColorScheme();
+  const inputTextColor = colorScheme === 'dark' ? '#ffffff' : '#000000';
+  const placeholderTextColor = colorScheme === 'dark' ? '#9aa0a6' : '#888888';
 
   useEffect(() => {
     if (visible) {
@@ -102,25 +106,27 @@ const TaskDetailModal = ({ visible, task, onClose, moveTo, onComplete }) => {
           <TouchableWithoutFeedback>
             <View style={styles.bottomSheet}>
               <Text style={styles.sheetTitle}>Priority</Text>
-              <View style={styles.priorityRow}>
-                {[1, 2, 3, 4, 5].map((p, idx) => (
-                  <TouchableOpacity
-                    key={p}
-                    style={[
-                      styles.priorityFlag,
-                      editableTask.priority === p && styles.selectedFlag,
-                      { borderColor: PRIORITY_COLORS[idx] },
-                    ]}
-                    onPress={() => {
-                      setEditableTask({ ...editableTask, priority: p });
-                      setModalType(null);
-                    }}
-                  >
-                    <MaterialIcons name="flag" size={28} color={PRIORITY_COLORS[idx]} />
-                    <Text style={styles.flagLabel}>P{p}</Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                <View style={styles.priorityRow}>
+                  {[1, 2, 3, 4, 5].map((p, idx) => (
+                    <TouchableOpacity
+                      key={p}
+                      style={[
+                        styles.priorityFlag,
+                        editableTask.priority === p && styles.selectedFlag,
+                        { borderColor: PRIORITY_COLORS[idx] },
+                      ]}
+                      onPress={() => {
+                        setEditableTask({ ...editableTask, priority: p });
+                        setModalType(null);
+                      }}
+                    >
+                      <MaterialIcons name="flag" size={28} color={PRIORITY_COLORS[idx]} />
+                      <Text style={styles.flagLabel}>P{p}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </ScrollView>
             </View>
           </TouchableWithoutFeedback>
         </View>
@@ -158,7 +164,8 @@ const TaskDetailModal = ({ visible, task, onClose, moveTo, onComplete }) => {
                 placeholder="# New Project"
                 value={newProjectName}
                 onChangeText={setNewProjectName}
-                style={styles.input}
+                style={[styles.input, { color: inputTextColor }]}
+                placeholderTextColor={placeholderTextColor}
               />
               <TouchableOpacity onPress={handleMoveToProject} style={styles.sheetActionBtn}>
                 <Text style={{ color: '#fff', fontWeight: 'bold' }}>Confirm</Text>
@@ -200,7 +207,8 @@ const TaskDetailModal = ({ visible, task, onClose, moveTo, onComplete }) => {
                 placeholder="@ New Context"
                 value={newContextName}
                 onChangeText={setNewContextName}
-                style={styles.input}
+                style={[styles.input, { color: inputTextColor }]}
+                placeholderTextColor={placeholderTextColor}
               />
               <TouchableOpacity onPress={handleMoveToNext} style={styles.sheetActionBtn}>
                 <Text style={{ color: '#fff', fontWeight: 'bold' }}>Confirm</Text>
@@ -564,7 +572,7 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 18,
     borderTopRightRadius: 18,
     padding: 22,
-    minHeight: 220,
+    minHeight: 180,
     maxHeight: '60%',
   },
   sheetTitle: {
@@ -575,9 +583,10 @@ const styles = StyleSheet.create({
   },
   priorityRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginVertical: 10,
-    gap: 8,
+    justifyContent: 'space-evenly',
+    marginTop: 10,
+    marginBottom: 32,
+    gap: 12,
   },
   priorityFlag: {
     alignItems: 'center',
@@ -586,6 +595,7 @@ const styles = StyleSheet.create({
     padding: 10,
     backgroundColor: '#f6f8fa',
     width: 60,
+
   },
   selectedFlag: {
     backgroundColor: '#e3f2fd',

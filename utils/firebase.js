@@ -19,7 +19,11 @@ try {
 } catch (_) {}
 
 // Do not attempt to import from @env; rely solely on expo constants or fallback 
-// ignored in git push
+// ignore in git push
+if (!FIREBASE_API_KEY) {
+  console.warn('Falling back to hardcoded Firebase config');
+
+}
 
 // Validate Firebase configuration
 if (!FIREBASE_API_KEY || !FIREBASE_AUTH_DOMAIN || !FIREBASE_PROJECT_ID) {

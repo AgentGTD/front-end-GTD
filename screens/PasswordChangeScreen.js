@@ -135,7 +135,7 @@ export default function ChangePasswordScreen() {
           onPress={() => setShow(!show)}
         >
           <Ionicons
-            name={show ? "eye-off" : "eye"}
+            name={show ? "eye" : "eye-off"}
             size={22}
             color="#888"
           />
