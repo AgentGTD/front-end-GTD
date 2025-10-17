@@ -184,6 +184,9 @@ export const TaskProvider = ({ children }) => {
   const { getCurrentToken, user, initializing } = useContext(AuthContext);
   const stateRef = useRef(state);
 
+  // --- NEW: track in-flight toggleComplete requests to allow cancel/undo safely
+  const inflightRef = useRef(new Map());
+
   // Keep ref updated
   useEffect(() => {
     stateRef.current = state;
@@ -440,7 +443,19 @@ export const TaskProvider = ({ children }) => {
 
     const newCompleted = !prevTask.completed;
 
+    // Optimistic apply
     dispatch({ type: 'OPTIMISTIC_TOGGLE_TASK', payload: taskId });
+
+    // Create AbortController for this request and store metadata so we can cancel/skip later
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000);
+
+    inflightRef.current.set(taskId, {
+      controller,
+      timeoutId,
+      expectedCompleted: newCompleted,
+      cancelled: false,
+    });
 
     try {
       const token = await getAuthToken();
@@ -456,27 +471,84 @@ export const TaskProvider = ({ children }) => {
         completed: newCompleted,
       };
 
-      const res = await fetchWithTimeout(`${API_BASE_URL}/api/tasks/${taskId}`, {
+      const res = await debugFetch(`${API_BASE_URL}/api/tasks/${taskId}`, {
         method: 'PUT',
         headers: {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(reqBody),
+        signal: controller.signal,
       });
+
+      // clear timeout & inflight entry (we'll decide whether to apply server result below)
+      clearTimeout(timeoutId);
+      const entry = inflightRef.current.get(taskId);
+      // remove entry early to signal completion; still keep information for check
+      inflightRef.current.delete(taskId);
 
       const data = await res.json();
 
+      // If user cancelled (undo) while request was in-flight, skip applying server update
+      if (entry && entry.cancelled) {
+        console.log(`ToggleComplete: server response ignored because user cancelled for task ${taskId}`);
+        return;
+      }
+
       if (res.ok && data.task) {
+        // Apply server canonical task
         dispatch({ type: 'UPDATE_TASK', payload: data.task });
       } else {
-        // revert optimistic change
+        // Server returned error — revert optimistic change
         dispatch({ type: 'OPTIMISTIC_TOGGLE_TASK', payload: taskId });
+        console.error('Error toggling task (server response not ok):', data);
       }
     } catch (error) {
-      console.error('Error toggling task completion:', error);
-      // revert on error
+      // If aborted due to user undo, do not double-revert
+      const entry = inflightRef.current.get(taskId);
+      // ensure timeout is cleared & entry removed
+      if (entry) {
+        clearTimeout(entry.timeoutId);
+        inflightRef.current.delete(taskId);
+      }
+
+      if (error.name === 'AbortError') {
+        // If user cancelled (undo) we already reverted UI; nothing to do.
+        console.log(`ToggleComplete: request aborted for task ${taskId}`);
+        return;
+      }
+
+      // Network / other error — revert optimistic change
       dispatch({ type: 'OPTIMISTIC_TOGGLE_TASK', payload: taskId });
+      console.error('Error toggling task:', error);
+    }
+  };
+
+  // NEW: Allow external callers (e.g. Snackbar undo) to cancel an in-flight toggle and revert UI
+  const undoToggle = (taskId) => {
+    const entry = inflightRef.current.get(taskId);
+    // If we have an in-flight operation, mark it cancelled and abort controller.
+    if (entry) {
+      entry.cancelled = true;
+      try {
+        entry.controller.abort();
+      } catch (e) {
+        // ignore
+      }
+      clearTimeout(entry.timeoutId);
+      inflightRef.current.delete(taskId);
+    }
+
+    // Revert optimistic UI only if current state shows the optimistic completed value
+    // This avoids double toggles: only dispatch revert when UI matches expectedCompleted.
+    const current = stateRef.current.tasks.find(t => t.id === taskId);
+    if (current && current.completed === (entry ? entry.expectedCompleted : true)) {
+      dispatch({ type: 'OPTIMISTIC_TOGGLE_TASK', payload: taskId });
+    } else {
+      // If there's no in-flight entry, still perform a revert if needed (safe)
+      if (current && current.completed) {
+        dispatch({ type: 'OPTIMISTIC_TOGGLE_TASK', payload: taskId });
+      }
     }
   };
 
@@ -741,6 +813,7 @@ export const TaskProvider = ({ children }) => {
         deleteContext,
         getTasksByProject,
         toggleComplete,
+        undoToggle, // <-- exposed so UI / Snackbar can call undoToggle(taskId)
         moveTo,
         refreshAll: fetchAll,
       }}
